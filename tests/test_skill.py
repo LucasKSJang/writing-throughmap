@@ -53,6 +53,25 @@ def section(path, heading):
     return "\n".join(lines[start:end])
 
 
+def bullet(text, lead):
+    """Return the list item of ``text`` that starts with ``lead``, nested lines included.
+
+    The item runs to the next line that starts at the margin, other than a blank one.
+    """
+    lines = text.splitlines()
+    start = next((n for n, line in enumerate(lines) if line.startswith(lead)), None)
+    if start is None:
+        raise ValueError(f"no line starts with {lead!r}")
+    end = next((n for n in range(start + 1, len(lines))
+                if lines[n] and not lines[n].startswith(" ")), len(lines))
+    return "\n".join(lines[start:end]).rstrip()
+
+
+def words(text):
+    """Return the words of ``text`` in lower case."""
+    return re.findall(r"[a-z]+", text.lower())
+
+
 def errors_as_a_direction(direction):
     """Return the errors check() finds when ``direction`` is the gap's in schema.md's example."""
     blocks = json_blocks(REFS / "schema.md")
@@ -277,39 +296,119 @@ class RulesFromTheRunsTests(unittest.TestCase):
         self.assertLessEqual(len(right), LIMITS["label"])
         self.assertNotIn(", not ", right)
 
-    def test_strong_words_need_the_drafts_own_exclusivity(self):
+    def test_no_wording_makes_a_claim_firmer_than_the_draft(self):
         # "Only" turned up in three of six theses: strong verbs "such as 'proves' or 'only'" were
         # read as leave to turn a possibility, a graded test or an assumption into a necessary
-        # condition.
-        guardrails = section(SKILL_MD, "## Guardrails")
+        # condition. The rule that followed listed the strong words, and the next runs kept clear
+        # of them but hardened with ordinary words: a smaller share became none, a possibility a
+        # certainty, an announced plan a thing done. So the rule bans the move, whatever the words.
+        rule = bullet(section(SKILL_MD, "## Guardrails"), "- A label, a section conclusion, a "
+                                                           "baton or the thesis may paraphrase")
+        ban = ("no wording may turn a possibility, a tendency, a plan or one option among several "
+               "into a certainty or the only option, or less of something into none of it.")
         for sentence in (
                 "A label, a section conclusion, a baton or the thesis may paraphrase freely, but "
                 "never more strongly than the paragraphs it covers.",
+                "The rule bans a move, not a list of words: " + ban,
+                "Read what you wrote back against those paragraphs and ask of every verb and every "
+                "negation whether the draft says that much.",
                 'A strong verb such as "proves" or "shows" is fine when those paragraphs argue '
                 "that strongly.",
-                '"Only", "must", "always", "never", "all" and "necessary" need the draft\'s own '
-                'exclusivity in those paragraphs: never turn "can", "may", "tends to", "if", '
-                '"unless", "assuming", "or" or "not every" into them.',
                 "A test the draft calls sufficient, or one condition among several, is not a "
                 "necessary condition."):
-            self.assertIn(sentence, guardrails)
-        self.assertNotIn('"only" included', guardrails)
+            self.assertIn(sentence, rule)
+        self.assertNotIn("own exclusivity", rule)   # the strong words are no longer the rule
+        # The examples make each move that the ban names with an ordinary word, which drops the
+        # draft's hedge, and keep the same point in a label that fits and holds a hedge.
+        rows = [[cell.strip() for cell in line.strip().strip("|").split("|")]
+                for line in rule.splitlines() if line.strip().startswith("|")]
+        self.assertEqual(rows[0], ["Move", "The draft says", "Hardened", "Kept"])
+        examples = rows[2:]
+        self.assertEqual(len(examples), 5)
+        self.assertEqual(len({move for move, *_ in examples}), 5)
+        strong = {"only", "must", "always", "never", "all", "every", "necessary"}
+        hedges = {"can", "may", "might", "would", "tends", "tended", "plans", "announced", "or",
+                  "less", "fewer"}
+        for move, says, hardened, kept in examples:
+            with self.subTest(move):
+                self.assertIn(move.lower(), ban)
+                self.assertTrue(re.search(r'"[^"]+"', says), says)
+                self.assertEqual(set(words(hardened)) & (strong | hedges), set())
+                self.assertTrue(set(words(kept)) & hedges, kept)
+                self.assertLessEqual(len(kept), LIMITS["label"])
 
-    def test_a_caveat_pass_comes_before_the_thesis_conclusions_and_batons(self):
+    def test_a_caveat_pass_lists_hedges_conditions_and_alternatives(self):
         # Theses and section conclusions dropped a "may", a "can" or an "or" from the paragraphs
         # they summed up, so the analysis takes stock of those words first, as the gaps take
-        # stock of the announced lists.
-        bullets = [line for line in section(SKILL_MD, "## Writing the analysis").splitlines()
-                   if line.startswith("- **Caveats.**")]
-        self.assertEqual(len(bullets), 1)
-        caveats = bullets[0]
-        self.assertIn("Before you write the thesis, a section's conclusion or its baton, list the "
-                      "hedges, conditions and alternatives in the paragraphs it covers", caveats)
-        for word in ("can", "may", "has tended to", "if", "unless", "assuming", "or", "not every"):
-            self.assertIn(f'"{word}"', caveats)
-        self.assertIn("Keep every one whose loss would change the meaning.", caveats)
-        self.assertIn("What you write may compress those paragraphs but never harden them.",
-                      caveats)
+        # stock of the announced lists. With the "or" in a list of other words, a conclusion
+        # still kept one of a condition's two alternatives and dropped the other, so the
+        # alternatives are a kind of their own.
+        caveats = bullet(section(SKILL_MD, "## Writing the analysis"), "- **Caveats.**")
+        for sentence in (
+                "Before you write the thesis, a section's conclusion or its baton, list what limits "
+                "the claims in the paragraphs it covers (for the thesis, every paragraph it draws "
+                "on).",
+                "Keep every one whose loss would change the meaning: what you write may compress "
+                "those paragraphs but never harden them.",
+                "List three kinds, or their equivalents in the draft's language:"):
+            self.assertIn(sentence, caveats)
+        kinds = [line[4:] for line in caveats.splitlines() if line.startswith("  - ")]
+        self.assertEqual([words(kind)[0] for kind in kinds],
+                         ["modals", "conditions", "alternatives"])
+        modals, conditions, alternatives = kinds
+        for word in ("can", "may", "would", "tends to", "less", "not every"):
+            self.assertIn(f'"{word}"', modals)
+        for word in ("if", "unless", "assuming", "provided", "depends on"):
+            self.assertIn(f'"{word}"', conditions)
+        self.assertIn('every option that an "or" offers, inside a condition as anywhere else.',
+                      alternatives)
+        # The example narrows a condition by dropping exactly one of its two alternatives.
+        example = re.search(r'patients "([^"]+)" are not home visits for patients ([^."]+)\.',
+                            alternatives)
+        self.assertIsNotNone(example, alternatives)
+        options = example.group(1).split(" or ")
+        self.assertEqual(len(options), 2)
+        self.assertEqual(example.group(2), options[0])
+
+    def test_a_caveat_wins_over_a_length_limit(self):
+        # A section conclusion that keeps every alternative of its condition can run past 90
+        # characters, and the one that fitted had dropped an alternative.
+        lengths = bullet(section(SKILL_MD, "## Writing the analysis"), "- **Lengths.**")
+        self.assertIn("When a length and a caveat compete, the caveat wins: cut other words first, "
+                      "and let the text run long rather than drop a hedge, a condition or an "
+                      "alternative.", lengths)
+        # Running long costs a warning, never an error, so the advice cannot loop the check.
+        blocks = json_blocks(REFS / "schema.md")
+        analysis = blocks["draft.json"]
+        analysis["thesis"] = " ".join(["more"] * (LIMITS["thesis"] // 4))
+        analysis["sections"][0]["conclusion"] = " ".join(["more"] * (LIMITS["conclusion"] // 4))
+        result = check(analysis, blocks["source.json"])
+        self.assertEqual(result["errors"], [])
+        warned = {entry["path"] for entry in result["warnings"]}
+        self.assertLessEqual({"$.thesis", "$.sections[0].conclusion"}, warned)
+
+    def test_a_last_consistency_pass_holds_the_thesis_to_the_maps_own_summaries(self):
+        # A thesis widened a negation that its own section conclusion and paragraph label drew
+        # narrowly, so the map contradicted itself: nothing compared the thesis with the rest.
+        writing = section(SKILL_MD, "## Writing the analysis")
+        rules = [line for line in writing.splitlines() if line.startswith("- **")]
+        self.assertTrue(rules[-1].startswith("- **Consistency.**"), rules[-1])
+        consistency = bullet(writing, "- **Consistency.**")
+        for sentence in (
+                "Last, when everything else is written, read the thesis against every section "
+                "conclusion and against the labels of the paragraphs it draws on, and each "
+                "section conclusion against the labels of its own paragraphs.",
+                "A summary may say less than the parts it sums up, but never more firmly, and "
+                'never the opposite: a thesis that says to stop planting street trees, over a '
+                'section that concludes "plant fewer, water more", says what its own map denies.',
+                "Where they part, re-read the paragraphs and correct whichever one departs from "
+                "them; never bend a label to fit the thesis."):
+            self.assertIn(sentence, consistency)
+        # The analysis step ends with the pass, before the check.
+        procedure = section(SKILL_MD, "## Procedure")
+        step = procedure[procedure.index("4. **Analysis.**"):procedure.index("5. **Check.**")]
+        self.assertIn('Last, make the consistency pass at the end of "Writing the analysis" and '
+                      "correct what it finds.", step)
 
     def test_an_x_not_y_label_takes_its_contrast_from_the_paragraph(self):
         # Labels of the form "X, not Y" came to invent a contrast that the paragraph never drew.
