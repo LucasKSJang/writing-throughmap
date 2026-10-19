@@ -28,6 +28,9 @@ LIMITS = {
     "paragraphs": 40, "lanes": 6, "questions": 4, "label": 28, "conclusion": 90, "baton": 40,
     "short": 12, "thesis": 160, "direction_sentences": 2, "unquoted_words": 12, "min_paragraphs": 5,
 }
+# The texts that summarize the draft. Their length warning says how to shorten them, since agents
+# cut a hedge or an alternative to get under a bare limit.
+SUMMARIES = ("thesis", "conclusion", "baton", "label")
 SOURCE_KINDS = ("docx", "md", "txt", "pdf", "paste", "gdoc")
 LANE_KINDS = ("question", "concept")
 WEIGHTS = ("major", "minor")
@@ -216,7 +219,12 @@ class _Checker:
 
     def _limit(self, path: str, text: str, name: str) -> None:
         """Warn when ``text`` is longer than the limit called ``name``."""
-        if len(text) > LIMITS[name]:
+        if len(text) <= LIMITS[name]:
+            return
+        if name in SUMMARIES:
+            self.warn(path, f"{len(text)} characters, over {LIMITS[name]}: cut only words that hold "
+                            "no hedge, condition or alternative, or leave it long")
+        else:
             self.warn(path, f"{len(text)} characters; keep it to {LIMITS[name]}")
 
     def run(self) -> dict:
