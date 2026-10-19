@@ -1,0 +1,9 @@
+{
+  "name": "writing-throughmap",
+  "version": "0.1.0",
+  "description": "Map the flow of an essay or report: paragraph roles, threads, recurring examples and gaps, as one offline HTML infographic.",
+  "author": { "name": "Lucas Jang" },
+  "license": "MIT",
+  "repository": "https://github.com/LucasKSJang/writing-throughmap",
+  "keywords": ["writing", "essay", "revision", "structure", "infographic"]
+}

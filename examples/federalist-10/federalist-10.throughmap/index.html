@@ -1,0 +1,2267 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>throughmap</title>
+<style>
+:root {
+  --bg: #ffffff;
+  --text: #1f1f1e;
+  --text-2: #5f5e5a;
+  --line: #e6e4dd;
+  --border: #d3d1c7;
+  --surface-1: #f7f6f2;
+  --surface-2: #ffffff;
+  --hover: #efede6;
+  --sel: rgba(127, 119, 221, 0.16);
+  --sel-edge: rgba(127, 119, 221, 0.7);
+  --teal: #1D9E75;
+  --purple: #7F77DD;
+  --radius: 6px;
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "Malgun Gothic", "Apple SD Gothic Neo",
+    "Noto Sans KR", Roboto, "Helvetica Neue", Arial, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1a1a19;
+    --text: #ecebe6;
+    --text-2: #a9a79f;
+    --line: #302f2c;
+    --border: #4a4943;
+    --surface-1: #232321;
+    --surface-2: #2b2b28;
+    --hover: #353431;
+    --sel: rgba(127, 119, 221, 0.3);
+    --sel-edge: rgba(150, 143, 232, 0.9);
+    color-scheme: dark;
+  }
+}
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { background: var(--bg); }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 14px/1.55 var(--font);
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+:lang(ko) { word-break: keep-all; overflow-wrap: anywhere; }
+button { font: inherit; color: inherit; }
+strong { font-weight: 600; }
+:focus-visible { outline: 2px solid var(--purple); outline-offset: 2px; }
+.tm-page { max-width: calc(1080px + 32px); margin: 0 auto; padding: 28px 16px 40px; }
+
+/* Errors from the page's own script, shown above everything. */
+#tm-errors {
+  margin: 0;
+  padding: 10px 16px;
+  font: 12px/1.5 ui-monospace, SFMono-Regular, Consolas, monospace;
+  white-space: pre-wrap;
+  color: var(--text);
+  background: var(--surface-1);
+  border-bottom: 2px solid var(--text);
+}
+
+/* Header */
+.tm-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px 24px;
+}
+.tm-head-text { flex: 1 1 320px; min-width: 0; }
+.tm-title {
+  margin: 0;
+  font-size: 22px;
+  line-height: 1.3;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.tm-meta { margin-top: 4px; font-size: 12.5px; color: var(--text-2); }
+.tm-actions { text-align: right; }
+.tm-buttons { display: flex; gap: 6px; justify-content: flex-end; }
+.tm-button {
+  padding: 5px 12px;
+  font-size: 12.5px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  cursor: pointer;
+}
+.tm-button:hover:not(:disabled) { background: var(--hover); }
+.tm-button:disabled { opacity: 0.5; cursor: default; }
+.tm-note { margin-top: 4px; font-size: 12px; color: var(--text-2); }
+.tm-thesis { margin: 16px 0 12px; padding: 8px 14px; border-left: 2px solid var(--border); }
+.tm-thesis-text { font-size: 15px; }
+.tm-label { font-size: 12px; color: var(--text-2); }
+.tm-questions { list-style: none; margin: 2px 0 0; padding: 0; display: grid; gap: 3px; }
+.tm-q-id { font-weight: 600; margin-right: 6px; }
+.tm-q-note { margin-left: 6px; font-size: 12.5px; color: var(--text-2); }
+.tm-dot {
+  display: inline-block;
+  flex: none;
+  width: 8px;
+  height: 8px;
+  margin-right: 6px;
+  border-radius: 50%;
+  vertical-align: 1px;
+}
+
+/* Panels */
+.tm-panel { margin-top: 14px; padding: 16px 0 10px; border-top: 1px solid var(--line); }
+.tm-panel-title { margin: 0 0 2px; font-size: 16px; line-height: 1.4; font-weight: 600; }
+.tm-hint { margin: 0 0 10px; font-size: 12.5px; color: var(--text-2); }
+
+/* Section flow */
+.tm-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: start;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-1);
+}
+.tm-sec-head { font-size: 12.5px; color: var(--text-2); }
+.tm-short { font-weight: 600; color: var(--text); }
+.tm-inferred {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 6px;
+  font-size: 11.5px;
+  line-height: 1.5;
+  border: 1px dashed var(--border);
+  border-radius: 4px;
+}
+.tm-concl { margin-top: 2px; }
+.tm-seq { margin-top: 6px; line-height: 2.15; }
+.tm-step { white-space: nowrap; }
+.tm-arrow { font-size: 12px; color: var(--text-2); }
+.tm-role {
+  padding: 1px 7px;
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: nowrap;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--surface-2);
+  cursor: pointer;
+}
+.tm-role:hover { border-color: var(--text-2); }
+.tm-role[aria-pressed="true"] { background: var(--sel); border-color: var(--sel-edge); }
+.tm-warn {
+  display: inline-block;
+  min-width: 16px;
+  height: 16px;
+  margin-left: 3px;
+  padding: 0 4px;
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 600;
+  text-align: center;
+  vertical-align: 1px;
+  color: var(--bg);
+  background: var(--text);
+  border-radius: 8px;
+  cursor: help;
+}
+.tm-answers { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+.tm-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 8px;
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: nowrap;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+}
+.tm-baton { padding: 4px 0 4px 18px; font-size: 12.5px; color: var(--text-2); }
+
+/* Thread map */
+.tm-map-scroll { overflow-x: auto; overflow-y: hidden; padding-bottom: 2px; }
+.tm-svg { display: block; overflow: visible; }
+.tm-measure { position: absolute; left: -10000px; top: 0; visibility: hidden; }
+.tm-svg text { font-family: var(--font); font-size: 11px; fill: var(--text-2); }
+.tm-svg .tm-bandbg { fill: var(--surface-1); }
+.tm-svg .tm-bandbg.is-odd { fill: transparent; }
+.tm-svg .tm-sep { stroke: var(--line); stroke-width: 1; }
+.tm-svg .tm-col { fill: transparent; cursor: pointer; }
+.tm-svg .tm-col.is-sel { fill: var(--sel); }
+.tm-svg .tm-num { cursor: pointer; transition: opacity 0.15s; }
+.tm-svg .tm-num.is-sel { fill: var(--text); font-weight: 600; }
+.tm-svg .tm-num.is-faint { opacity: 0.3; }
+.tm-svg .tm-lname { cursor: pointer; }
+.tm-svg .tm-lname:focus { outline: none; }
+.tm-svg .tm-lname-bg { fill: transparent; }
+.tm-svg .tm-lname:hover .tm-lname-bg { fill: var(--hover); }
+.tm-svg .tm-lname[aria-pressed="true"] .tm-lname-bg { fill: var(--sel); }
+.tm-svg .tm-lname:focus-visible .tm-lname-bg { stroke: var(--purple); stroke-width: 1.5; }
+.tm-svg .tm-lname-name, .tm-svg .tm-lname-desc { font-size: 12px; }
+.tm-svg .tm-lname-name { fill: var(--text); font-weight: 600; }
+.tm-svg .tm-lane { transition: opacity 0.15s; }
+.tm-svg .tm-lane.is-dim { opacity: 0.12; }
+.tm-svg .tm-lane line { pointer-events: none; }
+.tm-svg .tm-span { stroke-width: 1; stroke-dasharray: 2 4; }
+.tm-svg .tm-run { stroke-width: 2.5; stroke-opacity: 0.5; stroke-linecap: round; }
+.tm-svg .tm-mark { cursor: pointer; }
+
+/* Detail box */
+.tm-detail {
+  min-height: 78px;
+  margin-top: 8px;
+  padding: 9px 12px;
+  font-size: 13px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.tm-detail.is-empty { color: var(--text-2); }
+.tm-detail-threads { margin-top: 2px; font-size: 12.5px; color: var(--text-2); }
+.tm-detail-note { margin-top: 2px; color: var(--text-2); }
+.tm-thread { white-space: nowrap; }
+.tm-quote { font-style: italic; }
+.tm-quote:lang(ko), .tm-quote:lang(ja), .tm-quote:lang(zh) { font-style: normal; }
+.tm-warn-note { margin-top: 4px; font-size: 12.5px; }
+.tm-bad-note { margin-left: 6px; font-style: normal; color: var(--text); white-space: nowrap; }
+.tm-warn-note::before, .tm-bad-note::before {
+  content: "!";
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  margin-right: 6px;
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 600;
+  text-align: center;
+  font-style: normal;
+  color: var(--bg);
+  background: var(--text);
+  border-radius: 8px;
+}
+.is-bad .tm-quote, .tm-quote.is-bad {
+  text-decoration: underline wavy var(--text-2);
+  text-underline-offset: 3px;
+}
+
+/* Paragraph list */
+.tm-list { margin-top: 12px; }
+.tm-list > summary { cursor: pointer; font-size: 13px; color: var(--text-2); }
+.tm-rows { margin-top: 6px; }
+.tm-row {
+  display: grid;
+  grid-template-columns: 40px 108px minmax(0, 1fr);
+  gap: 2px 8px;
+  align-items: baseline;
+  padding: 6px 0;
+  font-size: 13px;
+  border-bottom: 1px solid var(--line);
+}
+.tm-row-id { color: var(--text-2); }
+.tm-row-role { justify-self: start; }
+.tm-row-quote, .tm-row-mark { grid-column: 2 / 4; font-size: 12.5px; color: var(--text-2); }
+.tm-row-mark { display: flex; align-items: baseline; gap: 0 4px; font-size: 12px; }
+.tm-row-mark .tm-dot { align-self: center; margin-right: 2px; }
+
+/* Recurring examples */
+.tm-cases-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.tm-case {
+  padding: 3px 10px;
+  font-size: 12.5px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  cursor: pointer;
+}
+.tm-case:hover { border-color: var(--text-2); }
+.tm-case[aria-pressed="true"] { background: var(--sel); border-color: var(--sel-edge); }
+.tm-case-name { font-weight: 600; }
+
+/* Gaps */
+#tm-gaps > summary { cursor: pointer; font-size: 16px; line-height: 1.4; font-weight: 600; }
+.tm-gap, .tm-obs { padding: 9px 0; border-bottom: 1px solid var(--line); }
+.tm-direction { margin-top: 2px; font-size: 12.5px; color: var(--text-2); }
+.tm-subhead { margin: 16px 0 0; font-size: 13px; font-weight: 600; color: var(--text-2); }
+.tm-none { margin: 8px 0 0; color: var(--text-2); }
+
+/* Footer */
+.tm-footer {
+  margin-top: 18px;
+  padding-top: 10px;
+  font-size: 12px;
+  color: var(--text-2);
+  border-top: 1px solid var(--line);
+}
+
+/* #poster: the poster alone, on white whatever the colour scheme. */
+html.tm-poster-mode, html.tm-poster-mode body { background: #ffffff; color-scheme: light; }
+#tm-poster { display: block; margin: 0 auto; }
+
+@media (max-width: 560px) {
+  .tm-page { padding-top: 20px; }
+  .tm-card { grid-template-columns: minmax(0, 1fr); }
+  .tm-answers { justify-content: flex-start; }
+  .tm-actions { text-align: left; }
+  .tm-row { grid-template-columns: 36px minmax(0, 1fr); }
+  .tm-row-label { grid-column: 2; }
+  .tm-row-quote, .tm-row-mark { grid-column: 2; }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; scroll-behavior: auto !important; }
+}
+@page { margin: 14mm; }
+@media print {
+  :root {
+    --bg: #ffffff;
+    --text: #1f1f1e;
+    --text-2: #5f5e5a;
+    --line: #e6e4dd;
+    --border: #d3d1c7;
+    --surface-1: #f7f6f2;
+    --surface-2: #ffffff;
+    --sel: rgba(127, 119, 221, 0.16);
+    color-scheme: light;
+  }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  html, body { background: #ffffff; }
+  .tm-page { max-width: none; padding: 0; }
+  /* What only works on screen: the buttons, the detail box and the hints about clicking. */
+  .tm-actions, #tm-detail, #tm-errors:empty, #tm-cases-hint, .tm-toggle-hint {
+    display: none !important;
+  }
+  .tm-map-scroll { overflow: visible; }
+  #tm-map { max-width: 100%; height: auto; }
+  .tm-card, .tm-baton, .tm-map-scroll, .tm-row, .tm-gap, .tm-obs, .tm-case { break-inside: avoid; }
+  .tm-panel-title, .tm-subhead, summary { break-after: avoid; }
+  summary { list-style: none; cursor: default; }
+  summary::-webkit-details-marker { display: none; }
+}
+</style>
+</head>
+<body>
+<pre id="tm-errors" hidden></pre>
+<main class="tm-page">
+  <header id="tm-header">
+    <div class="tm-head">
+      <div class="tm-head-text">
+        <h1 class="tm-title" id="tm-title"></h1>
+        <div class="tm-meta" id="tm-meta"></div>
+      </div>
+      <div class="tm-actions">
+        <div class="tm-buttons">
+          <button type="button" class="tm-button" id="tm-png"></button>
+          <button type="button" class="tm-button" id="tm-print"></button>
+        </div>
+        <div class="tm-note" id="tm-note" aria-live="polite"></div>
+      </div>
+    </div>
+    <div class="tm-thesis" id="tm-thesis">
+      <div class="tm-label" id="tm-thesis-label"></div>
+      <div class="tm-thesis-text" id="tm-thesis-text"></div>
+    </div>
+    <div class="tm-questions-block" id="tm-questions-block">
+      <div class="tm-label" id="tm-questions-label"></div>
+      <ul class="tm-questions" id="tm-questions"></ul>
+    </div>
+  </header>
+
+  <section class="tm-panel" id="tm-flow">
+    <h2 class="tm-panel-title" id="tm-flow-title"></h2>
+    <p class="tm-hint" id="tm-flow-hint"></p>
+    <div class="tm-cards" id="tm-cards"></div>
+  </section>
+
+  <section class="tm-panel" id="tm-map-panel">
+    <h2 class="tm-panel-title" id="tm-map-title"></h2>
+    <p class="tm-hint" id="tm-map-legend"></p>
+    <div class="tm-map-scroll" id="tm-map-scroll">
+      <svg id="tm-map" class="tm-svg" role="group"></svg>
+    </div>
+    <div class="tm-detail is-empty" id="tm-detail"></div>
+    <details class="tm-list" id="tm-list">
+      <summary id="tm-list-summary"></summary>
+      <div class="tm-rows" id="tm-rows"></div>
+    </details>
+  </section>
+
+  <section class="tm-panel" id="tm-cases">
+    <h2 class="tm-panel-title" id="tm-cases-title"></h2>
+    <p class="tm-hint" id="tm-cases-hint"></p>
+    <div class="tm-cases-list" id="tm-cases-list"></div>
+  </section>
+
+  <section class="tm-panel">
+    <details id="tm-gaps">
+      <summary id="tm-gaps-summary"></summary>
+      <div id="tm-gaps-body"></div>
+    </details>
+  </section>
+
+  <footer class="tm-footer" id="tm-footer"></footer>
+</main>
+<script>
+// The renderer comes before the data element and draws once the whole file has been read.
+// In a page filled in by hand, an unescaped comment opener in the data can make the data
+// element run on to the end of the file. The renderer then still runs, and says that it
+// found no analysis, instead of leaving the page blank.
+document.addEventListener("DOMContentLoaded", function () {
+  "use strict";
+
+  // --- Errors -------------------------------------------------------------------------------
+  // Anything that goes wrong is written into the box at the top of the page, so that a broken
+  // page says why instead of showing half a map.
+
+  const errorBox = document.getElementById("tm-errors");
+
+  function showError(message) {
+    errorBox.hidden = false;
+    errorBox.appendChild(document.createTextNode(String(message) + "\n"));
+  }
+
+  window.onerror = function (message, source, line, column, error) {
+    showError(error && error.stack ? error.stack : message + (line ? " (line " + line + ")" : ""));
+  };
+  window.addEventListener("unhandledrejection", function (event) {
+    const reason = event.reason;
+    showError(reason && reason.stack ? reason.stack : "Unhandled rejection: " + reason);
+  });
+
+  // --- Layout and colours -------------------------------------------------------------------
+
+  const SVG_NS = "http://www.w3.org/2000/svg";
+  const LAYOUT = Object.freeze({
+    CONTENT_MAX: 1080,                 // the widest the content gets, in px
+    LABEL_W: 120,                      // the column of thread names on the left of the map
+    COL_MIN: 14,                       // a map column is 14 to 36 px wide; below 14 the map scrolls
+    COL_MAX: 36,
+    BAND_H: 20,                        // the section bands along the top
+    LANE_GAP: 26,                      // from one row of the map to the next
+    MARK_R: Object.freeze({ major: 5, minor: 3 }),
+  });
+  const HUES = Object.freeze({ question: "#1D9E75", concept: "#7F77DD" });
+  const NEUTRAL_HUE = "#8a887f";       // a question no thread follows; a lane of neither kind
+
+  // --- Strings ------------------------------------------------------------------------------
+  // A string is looked up in the analysis's ui_strings, then in the table of its ui_language,
+  // then in English. A key ending in _1 is used when the number is 1.
+
+  const STRINGS = {
+    en: {
+      thesis: "Thesis",
+      questions: "Questions",
+      flow: "Section flow",
+      flow_hint: "One line per section, then its paragraphs' roles in order. Click a role to find it on the map.",
+      map: "Thread map",
+      map_legend: "Large dot = main point · small dot = brief mention · solid line = consecutive paragraphs · dashed line = the thread rests · click a thread name to isolate it",
+      poster_legend: "Large dot = main point · small dot = brief mention · solid line = consecutive paragraphs · dashed line = the thread rests",
+      detail_hint: "Hover or click a paragraph, a dot or a role to see its summary and evidence.",
+      list_toggle: "All paragraphs",
+      cases: "Recurring examples",
+      cases_hint: "Click to highlight where each appears.",
+      gaps: "Gaps",
+      gaps_toggle: "click to expand",
+      computed: "Seen by counting",
+      direction: "Direction",
+      threads: "Threads",
+      major: "main point",
+      minor: "brief mention",
+      png: "Save PNG",
+      print: "Print",
+      footer_offline: "Opens without an internet connection",
+      warn_quote: "Quote not found in the paragraph",
+      obs_quiet: "{lane} rests for {n} paragraphs ({from}–{to})",
+      obs_unresolved: "{lane} does not return in the last section",
+      obs_unthreaded: "{at} is on no thread",
+      table_prefix: "T",
+      figure_prefix: "F",
+      inferred: "inferred",
+      "role.problem": "Problem",
+      "role.thesis": "Thesis",
+      "role.context": "Context",
+      "role.claim": "Claim",
+      "role.evidence": "Evidence",
+      "role.example": "Example",
+      "role.counter": "Counterpoint",
+      "role.implication": "Implication",
+      "role.framework": "Framework",
+      "role.transition": "Transition",
+      "role.synthesis": "Synthesis",
+      "role.conclusion": "Conclusion",
+      para_row: "Paragraph",
+      n_paragraphs: "{n} paragraphs",
+      n_paragraphs_1: "{n} paragraph",
+      n_words: "{n} words",
+      n_words_1: "{n} word",
+      version: "analysis v{v}",
+      list_count: "{n} paragraphs",
+      list_count_1: "{n} paragraph",
+      list_count_and: "{n} paragraphs and {extra}",
+      list_count_and_1: "{n} paragraph and {extra}",
+      n_items: "({n})",
+      none: "none",
+      data_file: "Data file",
+      judged_by: "judged by {lanes}",
+      range: "{first}–{last}",
+      no_data: "No readable analysis in this page: its data is missing or broken. Ask for the page to be built again.",
+    },
+    ko: {
+      thesis: "논지",
+      questions: "질문",
+      flow: "섹션 흐름",
+      flow_hint: "섹션마다 결론 한 줄과 문단 역할 순서 · 역할에 마우스를 올리면 요약, 누르면 아래 지도에서 그 문단이 강조돼요",
+      map: "연결 지도",
+      map_legend: "큰 점 = 중심 논지 · 작은 점 = 짧은 언급 · 실선 = 연달아 다룸 · 점선 = 쉬었다 다시 나옴 · 왼쪽 이름을 누르면 그 실만 남아요",
+      poster_legend: "큰 점 = 중심 논지 · 작은 점 = 짧은 언급 · 실선 = 연달아 다룸 · 점선 = 쉬었다 다시 나옴",
+      detail_hint: "문단 번호, 점, 또는 위 카드의 역할을 누르면 요약과 근거 문장이 여기 보여요",
+      list_toggle: "문단 목록 전체 펼치기",
+      cases: "다시 나오는 사례",
+      cases_hint: "누르면 지도에서 그 문단들이 강조돼요",
+      gaps: "손볼 곳",
+      gaps_toggle: "눌러서 펼치기",
+      computed: "계산으로 보이는 것",
+      direction: "방향",
+      threads: "실",
+      major: "큰 점",
+      minor: "작은 점",
+      png: "PNG로 저장",
+      print: "인쇄",
+      footer_offline: "인터넷 연결 없이 열리는 파일",
+      warn_quote: "원문에서 찾지 못한 인용",
+      obs_quiet: "{lane} 실이 {from}부터 {to}까지 {n}개 문단 동안 쉬어요",
+      obs_unresolved: "{lane} 실이 마지막 섹션에 다시 나오지 않아요",
+      obs_unthreaded: "어느 실에도 걸리지 않은 문단: {at}",
+      table_prefix: "표",
+      figure_prefix: "그림",
+      inferred: "추정",
+      "role.problem": "문제 제기",
+      "role.thesis": "논지",
+      "role.context": "배경",
+      "role.claim": "주장",
+      "role.evidence": "근거",
+      "role.example": "사례",
+      "role.counter": "반론·균형",
+      "role.implication": "함의",
+      "role.framework": "틀",
+      "role.transition": "전환",
+      "role.synthesis": "종합",
+      "role.conclusion": "결론",
+      para_row: "문단",
+      n_paragraphs: "문단 {n}개",
+      n_words: "{n}단어",
+      version: "분석 v{v}",
+      list_count: "{n}개",
+      list_count_and: "{n}개와 {extra}",
+      n_items: "{n}개",
+      none: "없음",
+      data_file: "분석 기록",
+      judged_by: "{lanes} 실로 판정",
+      range: "{first}~{last}",
+      no_data: "이 파일에서 읽을 수 있는 분석을 찾지 못했어요. 데이터가 없거나 깨졌어요. 페이지를 다시 만들어 달라고 해 주세요.",
+    },
+  };
+
+  // --- The data -----------------------------------------------------------------------------
+
+  function isObject(value) {
+    return value !== null && typeof value === "object" && !Array.isArray(value);
+  }
+  function has(object, key) {
+    return Object.prototype.hasOwnProperty.call(object, key);
+  }
+  function asText(value) {
+    if (typeof value === "string") return value;
+    return value === null || value === undefined ? "" : String(value);
+  }
+  function listOf(value) {
+    return Array.isArray(value) ? value : [];
+  }
+
+  // Without readable data there is no ui_language either, so the message follows the
+  // language of the browser. The empty panels are hidden: the message is all there is.
+  function showNoAnalysis(detail) {
+    const language = asText(navigator.language).toLowerCase().split(/[-_]/)[0];
+    const strings = has(STRINGS, language) ? STRINGS[language] : STRINGS.en;
+    document.querySelector("main").hidden = true;
+    showError(strings.no_data + "\n(" + detail + ")");
+  }
+
+  let data = null;
+  let unreadable = "the data is not an object";
+  try {
+    data = JSON.parse(document.getElementById("throughmap-data").textContent);
+  } catch (error) {
+    unreadable = error.message;        // no data element, or text that is no JSON
+  }
+  if (!isObject(data)) {
+    showNoAnalysis(unreadable);
+    return;
+  }
+
+  const essay = isObject(data.essay) ? data.essay : {};
+  const uiLanguage = asText(data.ui_language) || "en";
+  const languageKey = uiLanguage.toLowerCase().split(/[-_]/)[0];
+  const builtIn = has(STRINGS, languageKey) ? STRINGS[languageKey] : STRINGS.en;
+  const stringLayers = [isObject(data.ui_strings) ? data.ui_strings : {}, builtIn, STRINGS.en];
+
+  const items = [];                    // the paragraphs, tables and figures, in document order
+  const itemById = new Map();
+  listOf(data.paragraphs).forEach(function (raw) {
+    if (!isObject(raw) || raw.id === undefined || raw.id === null) return;
+    const id = String(raw.id);
+    if (itemById.has(id)) return;
+    const item = {
+      id: id,
+      index: items.length,
+      kind: raw.kind === "table" || raw.kind === "figure" ? raw.kind : "paragraph",
+      section: asText(raw.section),
+      text: raw.text,
+      role: asText(raw.role),
+      label: asText(raw.label),
+      evidence: raw.evidence,
+      lanes: isObject(raw.lanes) ? raw.lanes : {},
+    };
+    items.push(item);
+    itemById.set(id, item);
+  });
+
+  const lanes = [];                    // the threads, in the order of the analysis
+  const laneById = new Map();
+  listOf(data.lanes).forEach(function (raw) {
+    if (!isObject(raw) || raw.id === undefined || raw.id === null) return;
+    const id = String(raw.id);
+    if (laneById.has(id)) return;
+    const kind = raw.kind === "question" || raw.kind === "concept" ? raw.kind : "";
+    const lane = {
+      id: id,
+      kind: kind,
+      label: asText(raw.label) || id,
+      sub: asText(raw.sub),
+      question: asText(raw.question),
+      hue: HUES[kind] || NEUTRAL_HUE,
+    };
+    // A question thread goes by its question (Q1) and then its label; a concept thread by its
+    // label and then its sub-label, as the approved layout names them.
+    if (kind === "question" && lane.question) {
+      lane.name = lane.question;
+      lane.desc = lane.label !== lane.question ? lane.label : lane.sub;
+    } else {
+      lane.name = lane.label;
+      lane.desc = lane.sub;
+    }
+    lanes.push(lane);
+    laneById.set(id, lane);
+  });
+
+  const questions = listOf(data.questions).filter(isObject).map(function (raw) {
+    return { id: asText(raw.id), text: asText(raw.text) };
+  });
+  const sections = listOf(data.sections).filter(isObject).map(function (raw) {
+    return {
+      id: asText(raw.id),
+      short: asText(raw.short),
+      title: asText(raw.title),
+      inferred: raw.inferred === true,
+      first: asText(raw.first),
+      last: asText(raw.last),
+      conclusion: asText(raw.conclusion),
+      baton: asText(raw.baton),
+      answers: listOf(raw.answers).map(asText),
+    };
+  });
+  const sectionById = new Map(sections.map(function (section) { return [section.id, section]; }));
+  const cases = listOf(data.cases).filter(isObject).map(function (raw) {
+    return { name: asText(raw.name), at: listOf(raw.at).map(asText), note: asText(raw.note) };
+  });
+  const gaps = listOf(data.gaps).filter(isObject).map(function (raw) {
+    return { note: asText(raw.note), direction: asText(raw.direction) };
+  });
+  const paragraphCount = items.filter(function (item) { return item.kind === "paragraph"; }).length;
+  const hasVersion = typeof data.version === "number"
+    || (typeof data.version === "string" && data.version !== "");
+  const quoteLanguage = asText(essay.language) || null;   // quotes stay in the draft's language
+
+  function marks(item, laneId) {
+    return has(item.lanes, laneId);
+  }
+
+  // --- Words --------------------------------------------------------------------------------
+
+  function lookup(key, number) {
+    for (const layer of stringLayers) {
+      if (number === 1 && has(layer, key + "_1") && typeof layer[key + "_1"] === "string") {
+        return layer[key + "_1"];
+      }
+      if (has(layer, key) && typeof layer[key] === "string") return layer[key];
+    }
+    return null;
+  }
+  function t(key) {
+    const found = lookup(key);
+    return found === null ? key : found;
+  }
+  function fill(template, values) {
+    return template.replace(/\{(\w+)\}/g, function (whole, name) {
+      return has(values, name) ? String(values[name]) : whole;
+    });
+  }
+  function formatNumber(number) {
+    const value = Number(number);
+    if (!isFinite(value)) return asText(number);
+    try {
+      return value.toLocaleString(builtIn === STRINGS.ko ? "ko" : "en");
+    } catch (error) {
+      return String(value);
+    }
+  }
+  // The string for a count, such as "6 paragraphs": the _1 form when the number is 1.
+  function counted(key, number, values) {
+    const template = lookup(key, number);
+    const all = Object.assign({ n: formatNumber(number) }, values);
+    return fill(template === null ? key : template, all);
+  }
+  function roleName(role) {
+    const found = lookup("role." + role);
+    return found === null ? role : found;
+  }
+  function weightName(weight) {
+    return weight === "major" || weight === "minor" ? t(weight) : asText(weight);
+  }
+  // How an id reads on the page: tables and figures take the prefix of the UI language (T1, 표1).
+  function shownId(id) {
+    id = asText(id);
+    const item = itemById.get(id);
+    let kind = item ? item.kind : "paragraph";
+    if (!item && /^T\d/.test(id)) kind = "table";
+    if (!item && /^F\d/.test(id)) kind = "figure";
+    if (kind === "table") return t("table_prefix") + id.replace(/^T/, "");
+    if (kind === "figure") return t("figure_prefix") + id.replace(/^F/, "");
+    return id;
+  }
+  function laneName(laneId) {
+    const lane = laneById.get(asText(laneId));
+    return lane ? lane.name : asText(laneId);
+  }
+  function quoted(text) {
+    return "“" + asText(text) + "”";
+  }
+
+  // --- The quote check ----------------------------------------------------------------------
+  // The same comparison as tm_text.normalize and contains_verbatim in the script, step by step:
+  // drop the format characters (Unicode category Cf), compose to NFC, turn typographic quotes,
+  // dashes, the ellipsis and narrow spaces plain, collapse each run of whitespace (what Python's
+  // \s matches) to one space and trim. Case counts.
+
+  const FORMAT_CHARACTERS = /\p{Cf}/gu;
+  const TYPOGRAPHY = new Map();        // the table _TYPOGRAPHY_TO_PLAIN, by code point
+  [
+    [[0x2018, 0x2019, 0x201A, 0x201B, 0x2032], "'"],
+    [[0x201C, 0x201D, 0x201E, 0x201F, 0x2033], "\""],
+    [[0x2013, 0x2014, 0x2015, 0x2212, 0x2012], "-"],
+    [[0x2026], "..."],
+    [[0x00A0, 0x2009, 0x202F, 0x2007], " "],
+  ].forEach(function (entry) {
+    entry[0].forEach(function (code) { TYPOGRAPHY.set(String.fromCharCode(code), entry[1]); });
+  });
+  const PYTHON_WHITESPACE = new Set([   // every character that Python's \s matches
+    0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x1C, 0x1D, 0x1E, 0x1F, 0x20, 0x85, 0xA0, 0x1680,
+    0x2000, 0x2001, 0x2002, 0x2003, 0x2004, 0x2005, 0x2006, 0x2007, 0x2008, 0x2009, 0x200A,
+    0x2028, 0x2029, 0x202F, 0x205F, 0x3000,
+  ].map(function (code) { return String.fromCharCode(code); }));
+
+  function normalize(text) {
+    const composed = String(text).replace(FORMAT_CHARACTERS, "").normalize("NFC");
+    let out = "";
+    let space = false;
+    for (const char of composed) {
+      const plain = TYPOGRAPHY.has(char) ? TYPOGRAPHY.get(char) : char;
+      for (const part of plain) {
+        if (PYTHON_WHITESPACE.has(part)) {
+          space = true;
+        } else {
+          if (space && out) out += " ";
+          space = false;
+          out += part;
+        }
+      }
+    }
+    return out;
+  }
+  function containsVerbatim(haystack, needle) {
+    if (typeof haystack !== "string" || typeof needle !== "string") return false;
+    const wanted = normalize(needle);
+    return wanted.length > 0 && normalize(haystack).indexOf(wanted) !== -1;
+  }
+
+  // The quotes that fail, per item: [{lane: lane id, or null for the evidence, quote}].
+  const badQuotes = new Map();
+  items.forEach(function (item) {
+    const bad = [];
+    if (!containsVerbatim(item.text, item.evidence)) bad.push({ lane: null, quote: item.evidence });
+    Object.keys(item.lanes).forEach(function (laneId) {
+      const mark = item.lanes[laneId];
+      const quote = isObject(mark) ? mark.quote : undefined;
+      if (!containsVerbatim(item.text, quote)) bad.push({ lane: laneId, quote: quote });
+    });
+    if (bad.length) badQuotes.set(item.id, bad);
+  });
+
+  // --- Runs and observations ----------------------------------------------------------------
+  // build works these out (computed in vN.json). A page that an agent filled in without Python
+  // has none, so the page works them out the same way as tm_build does.
+
+  function computeRuns() {
+    const runs = {};
+    lanes.forEach(function (lane) {
+      const stretches = [];
+      let stretch = null;
+      items.forEach(function (item) {
+        if (!marks(item, lane.id)) {
+          stretch = null;
+          return;
+        }
+        if (!stretch) {
+          stretch = [];
+          stretches.push(stretch);
+        }
+        stretch.push(item.id);
+      });
+      if (!stretches.length) return;
+      const lastStretch = stretches[stretches.length - 1];
+      runs[lane.id] = {
+        span: [stretches[0][0], lastStretch[lastStretch.length - 1]],
+        solid: stretches.filter(function (ids) { return ids.length >= 2; }),
+      };
+    });
+    return runs;
+  }
+
+  function computeObservations() {
+    const paragraphs = items.filter(function (item) { return item.kind === "paragraph"; });
+    const markedLanes = lanes.map(function (lane) { return lane.id; }).filter(function (laneId) {
+      return items.some(function (item) { return marks(item, laneId); });
+    });
+    const shortest = Math.max(6, Math.ceil(0.25 * paragraphs.length));
+    const found = [];
+    markedLanes.forEach(function (laneId) {
+      let lastMark = null;
+      let resting = 0;
+      items.forEach(function (item) {
+        if (marks(item, laneId)) {
+          if (lastMark !== null && resting >= shortest) {
+            found.push({ type: "quiet", lane: laneId, from: lastMark, to: item.id,
+                         length: resting });
+          }
+          lastMark = item.id;
+          resting = 0;
+        } else if (item.kind === "paragraph") {
+          resting += 1;
+        }
+      });
+    });
+    if (sections.length) {
+      const lastSection = sections[sections.length - 1].id;
+      const returning = new Set();
+      paragraphs.forEach(function (item) {
+        if (item.section !== lastSection) return;
+        Object.keys(item.lanes).forEach(function (laneId) { returning.add(laneId); });
+      });
+      markedLanes.forEach(function (laneId) {
+        if (!returning.has(laneId)) found.push({ type: "unresolved", lane: laneId });
+      });
+    }
+    paragraphs.forEach(function (item) {
+      if (!Object.keys(item.lanes).length && item.role !== "transition") {
+        found.push({ type: "unthreaded", at: [item.id] });
+      }
+    });
+    return found;
+  }
+
+  const computed = isObject(data.computed) ? data.computed : null;
+  const runs = computed && isObject(computed.runs) ? computed.runs : computeRuns();
+  const observations = computed && Array.isArray(computed.observations)
+    ? computed.observations : computeObservations();
+
+  // --- Building elements --------------------------------------------------------------------
+  // h() makes an HTML element and s() an SVG one. Text from the analysis goes in as text nodes
+  // only, and attributes through setAttribute, so markup in a draft stays text.
+
+  function setAttributes(node, attributes) {
+    if (!attributes) return node;
+    Object.keys(attributes).forEach(function (name) {
+      const value = attributes[name];
+      if (value === null || value === undefined || value === false) return;
+      node.setAttribute(name, value === true ? "" : String(value));
+    });
+    return node;
+  }
+  function append(node, children) {
+    if (children === null || children === undefined) return node;
+    (Array.isArray(children) ? children : [children]).forEach(function (child) {
+      if (child === null || child === undefined || child === false) return;
+      node.appendChild(typeof child === "object" ? child : document.createTextNode(String(child)));
+    });
+    return node;
+  }
+  function h(tag, attributes, children) {
+    return append(setAttributes(document.createElement(tag), attributes), children);
+  }
+  function s(tag, attributes, children) {
+    return append(setAttributes(document.createElementNS(SVG_NS, tag), attributes), children);
+  }
+  function clear(node) {
+    while (node.firstChild) node.removeChild(node.firstChild);
+  }
+  function setText(id, text) {
+    document.getElementById(id).textContent = text;
+  }
+  function dot(hue) {
+    const span = h("span", { class: "tm-dot", "aria-hidden": "true" });
+    span.style.background = hue;
+    return span;
+  }
+  function px(value) {
+    return String(Math.round(value * 100) / 100);
+  }
+  function clamp(value, low, high) {
+    return Math.min(high, Math.max(low, value));
+  }
+
+  // A question is teal when a question thread follows it, purple when only concept threads do.
+  function questionHue(questionId) {
+    const followedBy = function (kind) {
+      return lanes.some(function (lane) {
+        return lane.kind === kind && lane.question === questionId;
+      });
+    };
+    if (followedBy("question")) return HUES.question;
+    if (followedBy("concept")) return HUES.concept;
+    return NEUTRAL_HUE;
+  }
+
+  function warnBadge(itemId) {
+    return h("span", {
+      class: "tm-warn", "data-item": itemId, title: t("warn_quote"), role: "img",
+      "aria-label": t("warn_quote"),
+    }, "!");
+  }
+
+  // --- Header -------------------------------------------------------------------------------
+
+  // The line under the title: the draft's file, its paragraphs and words, and the version.
+  function metaText() {
+    const meta = [];
+    if (essay.source) meta.push(asText(essay.source));
+    meta.push(counted("n_paragraphs", paragraphCount));
+    if (typeof essay.word_count === "number") meta.push(counted("n_words", essay.word_count));
+    if (hasVersion) meta.push(fill(t("version"), { v: data.version }));
+    return meta.join(" · ");
+  }
+
+  // A question without a thread of its own is judged through the concept threads that help
+  // answer it: "judged by A·B". "" for any other question.
+  function judgedBy(question) {
+    const ownLane = lanes.some(function (lane) {
+      return lane.kind === "question" && lane.question === question.id;
+    });
+    const helpers = lanes.filter(function (lane) {
+      return lane.kind === "concept" && lane.question === question.id;
+    });
+    if (ownLane || !helpers.length) return "";
+    const names = helpers.map(function (lane) { return lane.name; });
+    return fill(t("judged_by"), { lanes: names.join("·") });
+  }
+
+  function renderHeader() {
+    const title = asText(essay.title);
+    document.title = title ? title + " · throughmap" : "throughmap";
+    document.documentElement.setAttribute("lang", uiLanguage);
+    setText("tm-title", title);
+    setText("tm-meta", metaText());
+
+    setText("tm-png", t("png"));
+    setText("tm-print", t("print"));
+
+    const thesis = asText(data.thesis);
+    document.getElementById("tm-thesis").hidden = !thesis;
+    setText("tm-thesis-label", t("thesis"));
+    setText("tm-thesis-text", thesis);
+
+    const list = document.getElementById("tm-questions");
+    document.getElementById("tm-questions-block").hidden = !questions.length;
+    setText("tm-questions-label", t("questions"));
+    questions.forEach(function (question) {
+      const entry = h("li", { "data-question": question.id }, [
+        dot(questionHue(question.id)), h("span", { class: "tm-q-id" }, question.id), question.text,
+      ]);
+      const note = judgedBy(question);
+      if (note) entry.appendChild(h("span", { class: "tm-q-note" }, note));
+      list.appendChild(entry);
+    });
+  }
+
+  // --- Section flow -------------------------------------------------------------------------
+
+  const roleButtons = new Map();       // item id -> its role button in the section cards
+  const itemsBySection = new Map(sections.map(function (section) { return [section.id, []]; }));
+  items.forEach(function (item) {
+    if (itemsBySection.has(item.section)) itemsBySection.get(item.section).push(item);
+  });
+
+  function rangeOf(section) {
+    if (!section.first) return "";
+    if (!section.last || section.last === section.first) return shownId(section.first);
+    return fill(t("range"), { first: shownId(section.first), last: shownId(section.last) });
+  }
+
+  function sectionHead(section) {
+    const head = h("div", { class: "tm-sec-head" },
+      h("span", { class: "tm-short" }, section.short || section.id));
+    const range = rangeOf(section);
+    if (section.title && section.title !== section.short) append(head, " · " + section.title);
+    if (range) append(head, " · " + range);
+    if (section.inferred) append(head, h("span", { class: "tm-inferred" }, t("inferred")));
+    return head;
+  }
+
+  // Each role is a step that keeps its arrow to the next one, so a wrapped line ends in "→".
+  function roleSequence(section) {
+    const sequence = h("div", { class: "tm-seq" });
+    const sectionItems = itemsBySection.get(section.id);
+    sectionItems.forEach(function (item, position) {
+      const button = h("button", {
+        class: "tm-role", "data-item": item.id, title: item.label || null, type: "button",
+        "aria-pressed": "false",
+      }, shownId(item.id) + " " + roleName(item.role));
+      button.addEventListener("click", function () { pressRole(item.id); });
+      roleButtons.set(item.id, button);
+      const last = position === sectionItems.length - 1;
+      sequence.appendChild(h("span", { class: "tm-step" }, [
+        button,
+        badQuotes.has(item.id) ? warnBadge(item.id) : null,
+        last ? null : h("span", { class: "tm-arrow", "aria-hidden": "true" }, " →"),
+      ]));
+      if (!last) append(sequence, " ");
+    });
+    return sequence;
+  }
+
+  function renderFlow() {
+    setText("tm-flow-title", t("flow"));
+    setText("tm-flow-hint", t("flow_hint"));
+    const cards = document.getElementById("tm-cards");
+    sections.forEach(function (section, number) {
+      const main = h("div", { class: "tm-sec-main" }, [
+        sectionHead(section),
+        section.conclusion ? h("div", { class: "tm-concl" }, section.conclusion) : null,
+        roleSequence(section),
+      ]);
+      const answers = h("div", { class: "tm-answers" }, section.answers.map(function (id) {
+        return h("span", { class: "tm-chip" }, [dot(questionHue(id)), id]);
+      }));
+      const card = h("div", { class: "tm-card", "data-section": section.id }, [main, answers]);
+      cards.appendChild(card);
+      if (number < sections.length - 1 && section.baton) {
+        cards.appendChild(h("div", { class: "tm-baton" }, "↓ " + section.baton));
+      }
+    });
+  }
+
+  // --- Thread map ---------------------------------------------------------------------------
+
+  let measuring = null;                // a hidden svg text element, while a drawing measures text
+  let posterProbe = null;              // the poster's own text element, while the poster is drawn
+
+  // The width of ``text`` in the style ``className``: as the page draws it, or, while the poster
+  // is drawn, as the poster's own style sheet and fonts draw it.
+  function measure(text, className) {
+    if (!posterProbe && (!measuring || !measuring.isConnected)) {
+      const box = s("svg", { class: "tm-svg tm-measure", width: 1, height: 1,
+                             "aria-hidden": "true" });
+      measuring = s("text", { x: 0, y: 0 });
+      box.appendChild(measuring);
+      document.body.appendChild(box);
+    }
+    const probe = posterProbe || measuring;
+    probe.setAttribute("class", className);
+    probe.textContent = text;
+    return probe.getComputedTextLength();
+  }
+  function stopMeasuring() {
+    if (measuring && measuring.parentNode && measuring.parentNode.parentNode) {
+      measuring.parentNode.parentNode.removeChild(measuring.parentNode);
+    }
+    measuring = null;
+  }
+  // The text as it fits in ``room`` pixels: whole, or cut short with an ellipsis ({text, cut}).
+  function fitText(text, room, className) {
+    if (measure(text, className) <= room) return { text: text, cut: false };
+    const chars = Array.from(text);
+    const cutAt = function (count) { return chars.slice(0, count).join("").trimEnd() + "…"; };
+    let low = 0;
+    let high = chars.length - 1;
+    while (low < high) {
+      const middle = Math.ceil((low + high) / 2);
+      if (measure(cutAt(middle), className) <= room) low = middle;
+      else high = middle - 1;
+    }
+    return { text: cutAt(low), cut: true };
+  }
+
+  // Each run of consecutive items in the same section makes one band along the top.
+  function bandsOf() {
+    const bands = [];
+    items.forEach(function (item, index) {
+      const last = bands[bands.length - 1];
+      if (last && last.section === item.section) last.end = index;
+      else bands.push({ section: item.section, start: index, end: index });
+    });
+    return bands;
+  }
+
+  // The size of the number row: two-digit numbers need room, so narrow columns get smaller ones.
+  function numberSize(width) {
+    return width >= 20 ? 11 : width >= 16 ? 10 : 9;
+  }
+  // What a column shows on the number row: the paragraph's number, or a table's prefix and
+  // number, or only the prefix when the column is too narrow for both.
+  function columnLabel(item, width) {
+    if (item.kind === "paragraph") return /^P\d+$/.test(item.id) ? item.id.slice(1) : item.id;
+    const full = shownId(item.id);
+    const fits = measure(full, "tm-num") * numberSize(width) / 11 <= width - 2;   // at 11px
+    return fits ? full : t(item.kind === "table" ? "table_prefix" : "figure_prefix");
+  }
+
+  function laneTitle(lane) {
+    const parts = [lane.name];
+    if (lane.desc) parts.push(lane.desc);
+    if (lane.sub && lane.sub !== lane.desc) parts.push(lane.sub);
+    const question = questions.find(function (entry) { return entry.id === lane.question; });
+    const asked = question && question.text ? "\n" + question.id + " " + question.text : "";
+    return parts.join(" · ") + asked;
+  }
+
+  function markTitle(item, lane, mark) {
+    const weight = isObject(mark) ? weightName(mark.weight) : "";
+    const quote = isObject(mark) ? "\n" + quoted(mark.quote) : "";
+    return [shownId(item.id), lane.name, weight].filter(Boolean).join(" · ") + quote;
+  }
+
+  // Draw the thread map into ``svg``, given ``room`` pixels for all of it, the column of thread
+  // names included. Each column takes an equal share of what is left, 14 to 36 pixels.
+  function drawMap(svg, room) {
+    const L = LAYOUT;
+    const count = items.length;
+    const share = Math.floor((room - L.LABEL_W) / Math.max(count, 1) * 100) / 100;
+    const column = clamp(share, L.COL_MIN, L.COL_MAX);
+    const width = L.LABEL_W + count * column;
+    const numberY = L.BAND_H + 12;
+    const laneY = function (row) { return numberY + L.LANE_GAP * (row + 1); };
+    const height = (lanes.length ? laneY(lanes.length - 1) : numberY) + 14;
+    const left = function (index) { return L.LABEL_W + column * index; };
+    const centre = function (index) { return left(index) + column / 2; };
+    const indexOf = function (id) {
+      const item = itemById.get(asText(id));
+      return item ? item.index : -1;
+    };
+
+    clear(svg);
+    setAttributes(svg, {
+      width: px(width), height: px(height), viewBox: "0 0 " + px(width) + " " + px(height),
+    });
+
+    bandsOf().forEach(function (band, number) {
+      const x = left(band.start);
+      const bandWidth = column * (band.end - band.start + 1);
+      const section = sectionById.get(band.section);
+      const name = section ? section.short || section.id : band.section;
+      const fit = fitText(name, bandWidth - 4, "tm-band");
+      svg.appendChild(s("g", { class: "tm-bandg", "data-section": band.section }, [
+        fit.cut ? s("title", null, name) : null,
+        s("rect", {
+          class: number % 2 ? "tm-bandbg is-odd" : "tm-bandbg", x: px(x), y: 0,
+          width: px(bandWidth), height: L.BAND_H,
+        }),
+        s("text", {
+          class: "tm-band", x: px(x + bandWidth / 2), y: L.BAND_H / 2,
+          "text-anchor": "middle", "dominant-baseline": "central",
+        }, fit.text),
+      ]));
+      if (number) {
+        svg.appendChild(s("line", {
+          class: "tm-sep", x1: px(x), y1: 0, x2: px(x), y2: px(height - 4),
+        }));
+      }
+    });
+
+    items.forEach(function (item, index) {
+      svg.appendChild(s("rect", {
+        class: "tm-col", "data-item": item.id, x: px(left(index)), y: L.BAND_H + 2,
+        width: px(column), height: px(height - L.BAND_H - 6),
+      }));
+    });
+
+    svg.appendChild(s("text", {
+      class: "tm-rowlabel", x: 6, y: numberY, "dominant-baseline": "central",
+    }, t("para_row")));
+    items.forEach(function (item, index) {
+      svg.appendChild(s("text", {
+        class: "tm-num", "data-item": item.id, x: px(centre(index)), y: numberY,
+        "text-anchor": "middle", "dominant-baseline": "central",
+        style: "font-size:" + numberSize(column) + "px",
+      }, columnLabel(item, column)));
+    });
+
+    lanes.forEach(function (lane, row) {
+      const y = laneY(row);
+      svg.appendChild(threadName(lane, y));
+      svg.appendChild(threadRow(lane, y));
+    });
+    stopMeasuring();
+
+    // The name of a thread in the left column: its name in bold, then its description as far as
+    // it fits. Clicking it isolates the thread.
+    function threadName(lane, y) {
+      const room = L.LABEL_W - 16;
+      const nameFit = fitText(lane.name, room, "tm-lname-name");
+      const label = s("text", {
+        class: "tm-lname-text", x: 6, y: y, "dominant-baseline": "central",
+      }, s("tspan", { class: "tm-lname-name" }, nameFit.text));
+      const descRoom = room - measure(nameFit.text, "tm-lname-name") - 4;
+      if (!nameFit.cut && lane.desc && descRoom >= 24) {
+        const descFit = fitText(lane.desc, descRoom, "tm-lname-desc");
+        label.appendChild(s("tspan", { class: "tm-lname-desc", dx: 4 }, descFit.text));
+      }
+      return s("g", {
+        class: "tm-lname", "data-lane": lane.id, role: "button", tabindex: 0,
+        "aria-pressed": "false",
+      }, [
+        s("title", null, laneTitle(lane)),
+        s("rect", { class: "tm-lname-bg", x: 0, y: y - 11, width: L.LABEL_W - 6, height: 22,
+                    rx: 4 }),
+        label,
+      ]);
+    }
+
+    // A thread's row: a dashed line from its first mark to its last, a solid line over each
+    // run of consecutive marks, and a dot per mark, large for a main point.
+    function threadRow(lane, y) {
+      const group = s("g", { class: "tm-lane", "data-lane": lane.id, fill: lane.hue });
+      const line = function (className, from, to) {
+        return s("line", {
+          class: className, x1: px(centre(from)), y1: y, x2: px(centre(to)), y2: y,
+          stroke: lane.hue,
+        });
+      };
+      const run = isObject(runs[lane.id]) ? runs[lane.id] : null;
+      const span = run ? listOf(run.span) : [];
+      if (span.length === 2 && indexOf(span[0]) >= 0 && indexOf(span[1]) > indexOf(span[0])) {
+        group.appendChild(line("tm-span", indexOf(span[0]), indexOf(span[1])));
+      }
+      listOf(run && run.solid).forEach(function (ids) {
+        const stretch = listOf(ids);
+        const from = indexOf(stretch[0]);
+        const to = indexOf(stretch[stretch.length - 1]);
+        if (from >= 0 && to > from) group.appendChild(line("tm-run", from, to));
+      });
+      items.forEach(function (item, index) {
+        if (!marks(item, lane.id)) return;
+        const mark = item.lanes[lane.id];
+        const weight = isObject(mark) ? asText(mark.weight) : "";
+        group.appendChild(s("circle", {
+          class: "tm-mark", "data-item": item.id, "data-lane": lane.id, "data-weight": weight,
+          cx: px(centre(index)), cy: y, r: weight === "major" ? L.MARK_R.major : L.MARK_R.minor,
+        }, s("title", null, markTitle(item, lane, mark))));
+      });
+      return group;
+    }
+  }
+
+  // --- What is selected, and the detail box --------------------------------------------------
+
+  const map = document.getElementById("tm-map");
+  const mapScroll = document.getElementById("tm-map-scroll");
+  const detail = document.getElementById("tm-detail");
+  const caseButtons = [];
+  let pinned = null;                   // {type: "item", id} or {type: "case", index}, or null
+  let preview = null;                  // the id of the item under the pointer on the map
+  let isolated = null;                 // the id of the one lane left showing, or null
+  let drawnRoom = -1;
+
+  function shown() {
+    if (preview !== null && itemById.has(preview)) return { type: "item", id: preview };
+    return pinned;
+  }
+  function litItems() {
+    const now = shown();
+    if (!now) return new Set();
+    if (now.type === "item") return new Set([now.id]);
+    return new Set(cases[now.index] ? cases[now.index].at : []);
+  }
+  function isPinned(type, key) {
+    return !!pinned && pinned.type === type && (type === "item" ? pinned.id : pinned.index) === key;
+  }
+
+  function applyState() {
+    const lit = litItems();
+    map.querySelectorAll(".tm-col").forEach(function (node) {
+      node.classList.toggle("is-sel", lit.has(node.getAttribute("data-item")));
+    });
+    map.querySelectorAll(".tm-num").forEach(function (node) {
+      const item = itemById.get(node.getAttribute("data-item"));
+      node.classList.toggle("is-sel", lit.has(item.id));
+      node.classList.toggle("is-faint", isolated !== null && !marks(item, isolated));
+    });
+    map.querySelectorAll(".tm-lane").forEach(function (node) {
+      const other = isolated !== null && node.getAttribute("data-lane") !== isolated;
+      node.classList.toggle("is-dim", other);
+    });
+    map.querySelectorAll(".tm-lname").forEach(function (node) {
+      node.setAttribute("aria-pressed", String(node.getAttribute("data-lane") === isolated));
+    });
+    roleButtons.forEach(function (button, id) {
+      button.setAttribute("aria-pressed", String(isPinned("item", id)));
+    });
+    caseButtons.forEach(function (button, index) {
+      button.setAttribute("aria-pressed", String(isPinned("case", index)));
+    });
+    renderDetail(shown());
+  }
+
+  function renderDetail(now) {
+    clear(detail);
+    detail.removeAttribute("data-item");
+    detail.classList.toggle("is-empty", !now);
+    if (!now) {
+      append(detail, t("detail_hint"));
+    } else if (now.type === "case") {
+      const entry = cases[now.index];
+      append(detail, [
+        h("div", null, [h("strong", null, entry.name), " · " + entry.at.map(shownId).join(" → ")]),
+        entry.note ? h("div", { class: "tm-detail-note" }, entry.note) : null,
+      ]);
+    } else {
+      renderItemDetail(itemById.get(now.id));
+    }
+  }
+
+  // An item in the detail box: its id, role and label, the evidence, the threads it is on, and
+  // the quotes that the check could not find in it.
+  function renderItemDetail(item) {
+    detail.setAttribute("data-item", item.id);
+    const head = [roleName(item.role), item.label].filter(Boolean).join(" · ");
+    const threads = h("div", { class: "tm-detail-threads" }, t("threads") + ": ");
+    const marked = lanes.filter(function (lane) { return marks(item, lane.id); });
+    if (!marked.length) append(threads, t("none"));
+    marked.forEach(function (lane, position) {
+      const mark = item.lanes[lane.id];
+      if (position) append(threads, " · ");
+      threads.appendChild(h("span", {
+        class: "tm-thread", title: isObject(mark) ? quoted(mark.quote) : null,
+      }, [dot(lane.hue), lane.name + " " + weightName(isObject(mark) ? mark.weight : "")]));
+    });
+    append(detail, [
+      h("div", null, [h("strong", null, shownId(item.id)), head ? " · " + head : ""]),
+      h("div", { class: "tm-quote", lang: quoteLanguage }, quoted(item.evidence)),
+      threads,
+    ]);
+    if (badQuotes.has(item.id)) {
+      const failed = badQuotes.get(item.id).map(function (problem) {
+        const where = problem.lane === null ? "" : laneName(problem.lane) + " ";
+        return where + quoted(problem.quote);
+      });
+      const note = t("warn_quote") + ": " + failed.join(" · ");
+      detail.appendChild(h("div", { class: "tm-warn-note" }, note));
+    }
+  }
+
+  function select(id) {
+    const key = id === null || id === undefined ? null : String(id);
+    pinned = key !== null && itemById.has(key) ? { type: "item", id: key } : null;
+    preview = null;
+    applyState();
+  }
+  function isolateLane(id) {
+    const key = id === null || id === undefined ? null : String(id);
+    isolated = key !== null && laneById.has(key) ? key : null;
+    applyState();
+  }
+
+  // Bring a column into view: across, inside the map's scroll box, and down to the map when the
+  // map is off the screen.
+  function reveal(id) {
+    const column = Array.prototype.find.call(map.querySelectorAll(".tm-col"), function (node) {
+      return node.getAttribute("data-item") === id;
+    });
+    if (!column) return;
+    const box = mapScroll.getBoundingClientRect();
+    const place = column.getBoundingClientRect();
+    if (place.left < box.left || place.right > box.right) {
+      mapScroll.scrollLeft += place.left - box.left - (box.width - place.width) / 2;
+    }
+    if (box.bottom < 0 || box.top > window.innerHeight) {
+      const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      document.getElementById("tm-map-panel").scrollIntoView({
+        behavior: still ? "auto" : "smooth", block: "center",
+      });
+    }
+  }
+
+  function pressRole(id) {
+    if (isPinned("item", id)) {
+      select(null);
+      return;
+    }
+    select(id);
+    reveal(id);
+  }
+  function pressCase(index) {
+    if (isPinned("case", index)) {
+      pinned = null;
+    } else {
+      pinned = { type: "case", index: index };
+      isolated = null;
+    }
+    preview = null;
+    applyState();
+  }
+  function pressLane(id) {
+    isolateLane(isolated === id ? null : id);
+  }
+
+  function renderMapPanel() {
+    setText("tm-map-title", t("map"));
+    setText("tm-map-legend", t("map_legend"));
+    map.setAttribute("aria-label", t("map"));
+    map.addEventListener("mouseover", function (event) {
+      const target = event.target.closest("[data-item]");
+      if (!target || preview === target.getAttribute("data-item")) return;
+      preview = target.getAttribute("data-item");
+      applyState();
+    });
+    map.addEventListener("mouseleave", function () {
+      if (!pinned || preview === null) return;   // with nothing pinned, the last one stays shown
+      preview = null;
+      applyState();
+    });
+    map.addEventListener("click", function (event) {
+      const name = event.target.closest(".tm-lname");
+      const target = event.target.closest("[data-item]");
+      if (name) pressLane(name.getAttribute("data-lane"));
+      else if (target) select(target.getAttribute("data-item"));
+    });
+    map.addEventListener("keydown", function (event) {
+      const name = event.target.closest(".tm-lname");
+      if (name && (event.key === "Enter" || event.key === " ")) {
+        event.preventDefault();
+        pressLane(name.getAttribute("data-lane"));
+      }
+    });
+  }
+
+  function redrawMap() {
+    if (!mapScroll.isConnected) return;  // the poster shows in place of the page
+    const room = Math.min(mapScroll.clientWidth, LAYOUT.CONTENT_MAX);
+    if (room === drawnRoom) return;
+    drawnRoom = room;
+    drawMap(map, room);
+    applyState();
+  }
+
+  // --- The list of all paragraphs -----------------------------------------------------------
+
+  function renderList() {
+    const extra = items.filter(function (item) { return item.kind !== "paragraph"; })
+      .map(function (item) { return shownId(item.id); });
+    const count = extra.length
+      ? counted("list_count_and", paragraphCount, { extra: extra.join(", ") })
+      : counted("list_count", paragraphCount);
+    setText("tm-list-summary", t("list_toggle") + " · " + count);
+    const rows = document.getElementById("tm-rows");
+    items.forEach(function (item) { rows.appendChild(listRow(item)); });
+  }
+
+  // A row of the list: id, role, label, the evidence, and each thread mark with its quote. A
+  // quote that the check could not find is marked where it stands, in words, so that the list
+  // (and a printout) says what the badge on the role means.
+  function listRow(item) {
+    const bad = badQuotes.get(item.id) || [];
+    const failed = function (laneId) {
+      return bad.some(function (problem) { return problem.lane === laneId; });
+    };
+    const quote = function (text, laneId) {
+      return [
+        h("span", { class: "tm-quote", lang: quoteLanguage }, quoted(text)),
+        failed(laneId) ? h("span", { class: "tm-bad-note" }, t("warn_quote")) : null,
+      ];
+    };
+    const unbadged = bad.length && !roleButtons.has(item.id);   // an item that no card shows
+    const row = h("div", { class: "tm-row", "data-item": item.id }, [
+      h("span", { class: "tm-row-id" }, shownId(item.id)),
+      h("span", { class: "tm-row-role" }, h("span", { class: "tm-chip" }, roleName(item.role))),
+      h("span", { class: "tm-row-label" }, [item.label, unbadged ? warnBadge(item.id) : null]),
+      h("div", { class: failed(null) ? "tm-row-quote is-bad" : "tm-row-quote" },
+        quote(item.evidence, null)),
+    ]);
+    lanes.forEach(function (lane) {
+      if (!marks(item, lane.id)) return;
+      const mark = isObject(item.lanes[lane.id]) ? item.lanes[lane.id] : {};
+      row.appendChild(h("div", { class: failed(lane.id) ? "tm-row-mark is-bad" : "tm-row-mark" }, [
+        dot(lane.hue),
+        h("span", null, lane.name + " · " + weightName(mark.weight) + " ·"),
+      ].concat(quote(mark.quote, lane.id))));
+    });
+    return row;
+  }
+
+  // --- Recurring examples -------------------------------------------------------------------
+
+  function renderCases() {
+    document.getElementById("tm-cases").hidden = !cases.length;
+    setText("tm-cases-title", t("cases"));
+    setText("tm-cases-hint", t("cases_hint"));
+    const list = document.getElementById("tm-cases-list");
+    cases.forEach(function (entry, index) {
+      const button = h("button", {
+        class: "tm-case", type: "button", "data-items": entry.at.join(" "),
+        title: entry.note || null, "aria-pressed": "false",
+      }, [
+        h("span", { class: "tm-case-name" }, entry.name),
+        " · " + entry.at.map(shownId).join(" → "),
+      ]);
+      button.addEventListener("click", function () { pressCase(index); });
+      caseButtons.push(button);
+      list.appendChild(button);
+    });
+  }
+
+  // --- Gaps ---------------------------------------------------------------------------------
+
+  function observationText(observation) {
+    if (!isObject(observation)) return "";
+    if (observation.type === "quiet") {
+      return fill(t("obs_quiet"), {
+        lane: laneName(observation.lane), n: formatNumber(observation.length),
+        from: shownId(observation.from), to: shownId(observation.to),
+      });
+    }
+    if (observation.type === "unresolved") {
+      return fill(t("obs_unresolved"), { lane: laneName(observation.lane) });
+    }
+    if (observation.type === "unthreaded") {
+      const at = Array.isArray(observation.at) ? observation.at : [observation.at];
+      return fill(t("obs_unthreaded"), { at: at.map(shownId).join(", ") });
+    }
+    return "";
+  }
+
+  function renderGaps() {
+    const notes = observations.map(observationText).filter(Boolean);
+    const total = gaps.length + notes.length;
+    append(document.getElementById("tm-gaps-summary"), [
+      t("gaps") + " " + counted("n_items", total),
+      h("span", { class: "tm-toggle-hint" }, " · " + t("gaps_toggle")),
+    ]);
+    const body = document.getElementById("tm-gaps-body");
+    gaps.forEach(function (gap) {
+      const direction = gap.direction ? t("direction") + ": " + gap.direction : "";
+      body.appendChild(h("div", { class: "tm-gap" }, [
+        gap.note, direction ? h("div", { class: "tm-direction" }, direction) : null,
+      ]));
+    });
+    if (notes.length) {
+      body.appendChild(h("h3", { class: "tm-subhead" }, t("computed")));
+      notes.forEach(function (note) { body.appendChild(h("div", { class: "tm-obs" }, note)); });
+    }
+    if (!total) body.appendChild(h("p", { class: "tm-none" }, t("none")));
+  }
+
+  // --- Footer -------------------------------------------------------------------------------
+
+  // The name of the draft's file without its folder and its extension, as Python's
+  // os.path.splitext takes the extension off: "notes.v2.docx" gives "notes.v2", ".md" stays.
+  function sourceStem() {
+    const name = asText(essay.source).replace(/^.*[\\/]/, "");
+    const dot = name.lastIndexOf(".");
+    const start = name.search(/[^.]/);       // leading dots belong to the name
+    return start >= 0 && dot > start ? name.slice(0, dot) : name;
+  }
+
+  // Where the data file of this version is: the page's own folder when it is a .throughmap
+  // folder, else the folder that build makes for the draft.
+  function dataFile() {
+    let folder = "";
+    try {
+      const parts = decodeURIComponent(window.location.pathname).split("/");
+      folder = parts.length > 1 ? parts[parts.length - 2] : "";
+    } catch (error) {
+      folder = "";
+    }
+    if (!/\.throughmap$/.test(folder)) folder = (sourceStem() || "essay") + ".throughmap";
+    return folder + "/v" + data.version + ".json";
+  }
+
+  function renderFooter() {
+    const parts = [t("footer_offline")];
+    if (hasVersion) parts.push(t("data_file") + ": " + dataFile());
+    setText("tm-footer", parts.join(" · "));
+  }
+
+  // --- The poster ---------------------------------------------------------------------------
+  // A picture of the page to share: the header, the section cards, the thread map and the
+  // recurring examples, then a footer line, in one svg 1,200 px wide. It keeps its own light
+  // palette and the system fonts whatever the page's colour scheme, and it is shapes and text
+  // only, with no HTML inside, so that a canvas it is painted on can still be saved. posterSVG()
+  // gives it as standalone markup, exportPNG() saves it as a PNG twice its size, and #poster
+  // shows it alone.
+
+  const POSTER = Object.freeze({
+    WIDTH: 1200,
+    PAD: 48,                           // on every side, so the content is 1,104 px wide
+    SCALE: 2,                          // pixels of the PNG per pixel of the poster
+    FONT: '-apple-system, "Segoe UI", "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif',
+    BG: "#ffffff",
+    TEXT: "#1f1f1e",
+    TEXT_2: "#5f5e5a",
+    BORDER: "#d3d1c7",
+    CARD: "#f7f6f2",
+  });
+  const POSTER_CONTENT = POSTER.WIDTH - 2 * POSTER.PAD;
+  const CARD = Object.freeze({ PAD_X: 16, PAD_Y: 12, CHIP_H: 22, ROW: 30 });
+
+  // The poster's text styles: size and line height in px, weight, and colour (secondary if none).
+  const POSTER_TEXT = Object.freeze({
+    "tm-p-title": { size: 28, line: 36, weight: 600, fill: POSTER.TEXT },
+    "tm-p-meta": { size: 13, line: 20 },
+    "tm-p-label": { size: 12, line: 18 },
+    "tm-p-thesis": { size: 15, line: 23, fill: POSTER.TEXT },
+    "tm-p-qid": { size: 14, line: 22, weight: 600, fill: POSTER.TEXT },
+    "tm-p-question": { size: 14, line: 22, fill: POSTER.TEXT },
+    "tm-p-note": { size: 12.5, line: 22 },
+    "tm-p-heading": { size: 16, line: 22, weight: 600, fill: POSTER.TEXT },
+    "tm-p-legend": { size: 12.5, line: 18 },
+    "tm-p-short": { size: 13, line: 20, weight: 600, fill: POSTER.TEXT },
+    "tm-p-sechead": { size: 13, line: 20 },
+    "tm-p-tag": { size: 11.5, line: 20 },
+    "tm-p-concl": { size: 14, line: 22, fill: POSTER.TEXT },
+    "tm-p-chip": { size: 12, line: 22, fill: POSTER.TEXT },
+    "tm-p-arrow": { size: 12, line: 22 },
+    "tm-p-warn": { size: 11, line: 16, weight: 600, fill: POSTER.BG },
+    "tm-p-baton": { size: 13, line: 20 },
+    "tm-p-casename": { size: 13, line: 20, weight: 600, fill: POSTER.TEXT },
+    "tm-p-case": { size: 13, line: 20, fill: POSTER.TEXT },
+    "tm-p-footer": { size: 12, line: 18 },
+  });
+
+  // The poster's style sheet, which travels inside its svg: the map's classes as the page draws
+  // them, in the light palette, then the poster's own text. Every rule starts with #tm-poster, so
+  // that on the page it styles the poster and nothing else.
+  const POSTER_STYLE = [
+    "#tm-poster text { font-family: " + POSTER.FONT + "; font-size: 11px; fill: " + POSTER.TEXT_2
+      + "; }",
+    "#tm-poster .tm-bandbg { fill: " + POSTER.CARD + "; }",
+    "#tm-poster .tm-bandbg.is-odd, #tm-poster .tm-col, #tm-poster .tm-lname-bg { fill: none; }",
+    "#tm-poster .tm-sep { stroke: " + POSTER.BORDER + "; stroke-width: 1; }",
+    "#tm-poster .tm-lname-name, #tm-poster .tm-lname-desc { font-size: 12px; }",
+    "#tm-poster .tm-lname-name { font-weight: 600; fill: " + POSTER.TEXT + "; }",
+    "#tm-poster .tm-span { stroke-width: 1; stroke-dasharray: 2 4; }",
+    "#tm-poster .tm-run { stroke-width: 2.5; stroke-opacity: 0.5; stroke-linecap: round; }",
+  ].concat(Object.keys(POSTER_TEXT).map(function (name) {
+    const style = POSTER_TEXT[name];
+    return "#tm-poster ." + name + " { font-size: " + style.size + "px;"
+      + (style.weight ? " font-weight: " + style.weight + ";" : "")
+      + (style.fill ? " fill: " + style.fill + ";" : "") + " }";
+  })).join("\n");
+
+  // Split ``text`` into lines at most ``room`` px wide in the style ``className``. Lines break at
+  // spaces, and inside a word only when the word alone is wider than a line. The first line has
+  // ``first`` px when something stands before it, and is "" when not even a word fits there.
+  function wrapText(text, className, room, first) {
+    const words = asText(text).split(/\s+/).filter(Boolean);
+    const lines = [];
+    let space = first === undefined ? room : first;
+    let line = "";
+    const fits = function (candidate) { return measure(candidate, className) <= space; };
+    const close = function () {
+      lines.push(line);
+      line = "";
+      space = room;
+    };
+    words.forEach(function (word) {
+      const longer = line ? line + " " + word : word;
+      if (fits(longer)) {
+        line = longer;
+        return;
+      }
+      if (line || space < room) {
+        close();
+        if (fits(word)) {
+          line = word;
+          return;
+        }
+      }
+      Array.from(word).forEach(function (char) {
+        if (line && !fits(line + char)) close();
+        line += char;
+      });
+    });
+    if (line) lines.push(line);
+    return lines;
+  }
+
+  // Lay out runs of text, {text, className}, one after another in lines ``room`` px wide: each
+  // run goes on ``gap`` px after the one before and wraps as wrapText does. Returns the pieces to
+  // draw, {text, className, x, line}, the number of lines, where the last line ends and the
+  // width of the widest.
+  function layoutRuns(runs, room, gap) {
+    const pieces = [];
+    let line = 0;
+    let end = 0;
+    let widest = 0;
+    runs.forEach(function (run) {
+      if (!asText(run.text)) return;
+      const start = end ? end + gap : 0;
+      wrapText(run.text, run.className, room, room - start).forEach(function (text, number) {
+        if (number) line += 1;
+        if (!text) return;             // nothing fitted after what was there: on to the next line
+        const x = number ? 0 : start;
+        pieces.push({ text: text, className: run.className, x: x, line: line });
+        end = x + measure(text, run.className);
+        widest = Math.max(widest, end);
+      });
+    });
+    return { pieces: pieces, lines: pieces.length ? line + 1 : 0, end: end, width: widest };
+  }
+
+  function posterText(text, className, x, y, anchor) {
+    return s("text", {
+      class: className, x: px(x), y: px(y), "text-anchor": anchor || null,
+      "dominant-baseline": "central",
+    }, text);
+  }
+  // Draw laid-out runs from (left, top), ``lineHeight`` px a line; return the height they take.
+  function drawPieces(parent, layout, left, top, lineHeight) {
+    layout.pieces.forEach(function (piece) {
+      parent.appendChild(posterText(piece.text, piece.className, left + piece.x,
+                                    top + lineHeight * (piece.line + 0.5)));
+    });
+    return layout.lines * lineHeight;
+  }
+  // Draw ``text`` in one style, wrapped to ``room`` px; return the height it takes.
+  function drawText(parent, text, className, left, top, room) {
+    const layout = layoutRuns([{ text: text, className: className }], room, 0);
+    return drawPieces(parent, layout, left, top, POSTER_TEXT[className].line);
+  }
+
+  // Place boxes of the given widths in rows ``room`` px wide, ``gap`` px apart. Returns where
+  // each one goes, {x, row}, and the number of rows.
+  function flowBoxes(widths, room, gap) {
+    const places = [];
+    let row = 0;
+    let x = 0;
+    widths.forEach(function (width) {
+      if (x && x + width > room) {
+        row += 1;
+        x = 0;
+      }
+      places.push({ x: x, row: row });
+      x += width + gap;
+    });
+    return { places: places, rows: places.length ? row + 1 : 0 };
+  }
+
+  // A box with a 1 px border inside its bounds.
+  function posterBox(x, y, width, height, fill, radius) {
+    return s("rect", {
+      x: px(x + 0.5), y: px(y + 0.5), width: px(width - 1), height: px(height - 1),
+      rx: radius, fill: fill, stroke: POSTER.BORDER,
+    });
+  }
+  function posterRule(svg, y) {
+    svg.appendChild(s("line", {
+      class: "tm-p-rule", x1: POSTER.PAD, y1: px(y + 0.5), x2: POSTER.PAD + POSTER_CONTENT,
+      y2: px(y + 0.5), stroke: POSTER.BORDER,
+    }));
+  }
+  // A rule across the poster, then a panel's heading; returns where the panel goes on.
+  function posterPanel(svg, top, title) {
+    posterRule(svg, top + 24);
+    return top + 40 + drawText(svg, title, "tm-p-heading", POSTER.PAD, top + 40, POSTER_CONTENT)
+      + 8;
+  }
+
+  // The title, the meta line, the thesis with its bar, and the questions.
+  function posterHeader(svg, top) {
+    const left = POSTER.PAD;
+    let y = top + drawText(svg, essay.title, "tm-p-title", left, top, POSTER_CONTENT);
+    y += 4 + drawText(svg, metaText(), "tm-p-meta", left, y + 4, POSTER_CONTENT);
+    const thesis = asText(data.thesis);
+    if (thesis) {
+      const start = y + 16;
+      y = start + 8 + drawText(svg, t("thesis"), "tm-p-label", left + 14, start + 8,
+                               POSTER_CONTENT - 14);
+      y += drawText(svg, thesis, "tm-p-thesis", left + 14, y, POSTER_CONTENT - 14) + 8;
+      svg.appendChild(s("rect", {
+        x: left, y: px(start), width: 2, height: px(y - start), fill: POSTER.BORDER,
+      }));
+    }
+    if (questions.length) {
+      y += 12 + drawText(svg, t("questions"), "tm-p-label", left, y + 12, POSTER_CONTENT) + 2;
+      questions.forEach(function (question) { y += posterQuestion(svg, question, left, y) + 2; });
+    }
+    return y;
+  }
+
+  // A question: its dot, its id in bold, then its text and the note on the threads that judge
+  // it, wrapping under the start of the text.
+  function posterQuestion(svg, question, left, top) {
+    const line = POSTER_TEXT["tm-p-question"].line;
+    const textLeft = left + 14 + measure(question.id, "tm-p-qid") + 6;
+    svg.appendChild(s("circle", {
+      class: "tm-p-dot", cx: left + 4, cy: px(top + line / 2), r: 4,
+      fill: questionHue(question.id),
+    }));
+    svg.appendChild(posterText(question.id, "tm-p-qid", left + 14, top + line / 2));
+    const layout = layoutRuns([
+      { text: question.text, className: "tm-p-question" },
+      { text: judgedBy(question), className: "tm-p-note" },
+    ], left + POSTER_CONTENT - textLeft, 6);
+    return Math.max(drawPieces(svg, layout, textLeft, top, line), line);
+  }
+
+  // The section cards, joined by their batons.
+  function posterFlow(svg, top) {
+    if (!sections.length) return top;
+    let y = posterPanel(svg, top, t("flow"));
+    sections.forEach(function (section, number) {
+      y = posterCard(svg, section, y);
+      if (number === sections.length - 1) return;
+      if (section.baton) {
+        y += 5 + drawText(svg, "↓ " + section.baton, "tm-p-baton", POSTER.PAD + 18, y + 5,
+                          POSTER_CONTENT - 18) + 5;
+      } else {
+        y += 8;
+      }
+    });
+    return y;
+  }
+
+  // A section's card: the short name, heading and range (and the inferred tag), the conclusion
+  // and the role sequence on the left, the questions it answers at the top right. Returns where
+  // the card ends.
+  function posterCard(svg, section, top) {
+    const card = s("g", { class: "tm-p-card", "data-section": section.id });
+    svg.appendChild(card);
+    const box = s("rect", {
+      class: "tm-p-cardbg", x: px(POSTER.PAD + 0.5), y: px(top + 0.5), width: POSTER_CONTENT - 1,
+      rx: 8, fill: POSTER.CARD, stroke: POSTER.BORDER,
+    });
+    card.appendChild(box);
+    const left = POSTER.PAD + CARD.PAD_X;
+    const inner = POSTER_CONTENT - 2 * CARD.PAD_X;
+    const answers = section.answers.map(function (id) {
+      return { id: id, width: 29 + measure(id, "tm-p-chip") };      // padding, dot, gap
+    });
+    const answersWidth = answers.reduce(function (sum, chip) { return sum + chip.width + 6; }, 0)
+      - (answers.length ? 6 : 0);
+    const room = answers.length ? inner - answersWidth - 12 : inner;
+    const headLine = POSTER_TEXT["tm-p-sechead"].line;
+    let y = top + CARD.PAD_Y;
+
+    const rest = [section.title !== section.short ? section.title : "", rangeOf(section)]
+      .filter(Boolean).join(" · ");
+    const head = layoutRuns([
+      { text: section.short || section.id, className: "tm-p-short" },
+      { text: rest ? "· " + rest : "", className: "tm-p-sechead" },
+    ], room, 4);
+    drawPieces(card, head, left, y, headLine);
+    let headLines = Math.max(head.lines, 1);
+    if (section.inferred) {
+      const label = t("inferred");
+      const width = measure(label, "tm-p-tag") + 12;
+      let x = head.end + 6;
+      if (x + width > room) {
+        x = 0;
+        headLines += 1;
+      }
+      const middle = y + headLine * (headLines - 0.5);
+      card.appendChild(s("rect", {
+        x: px(left + x + 0.5), y: px(middle - 8.5), width: px(width - 1), height: 17, rx: 4,
+        fill: "none", stroke: POSTER.BORDER, "stroke-dasharray": "3 2",
+      }));
+      card.appendChild(posterText(label, "tm-p-tag", left + x + 6, middle));
+    }
+    y += headLines * headLine;
+    if (section.conclusion) {
+      y += 2 + drawText(card, section.conclusion, "tm-p-concl", left, y + 2, room);
+    }
+    const sequence = posterSequence(card, section, left, y + 8, room);
+    if (sequence) y += 8 + sequence;
+    y += CARD.PAD_Y;
+    box.setAttribute("height", px(y - top - 1));
+
+    let x = left + inner - answersWidth;
+    answers.forEach(function (chip) {
+      const chipTop = top + CARD.PAD_Y + headLine / 2 - CARD.CHIP_H / 2;
+      const middle = chipTop + CARD.CHIP_H / 2;
+      card.appendChild(s("g", { class: "tm-p-answer" }, [
+        posterBox(x, chipTop, chip.width, CARD.CHIP_H, "none", 5),
+        s("circle", { cx: px(x + 12), cy: px(middle), r: 4, fill: questionHue(chip.id) }),
+        posterText(chip.id, "tm-p-chip", x + 21, middle),
+      ]));
+      x += chip.width + 6;
+    });
+    return y;
+  }
+
+  // A section's items as chips with their roles, "P1 Problem → P2 Claim", in rows that wrap;
+  // a chip that would not fit even a row of its own is cut short. Returns the height they take.
+  function posterSequence(card, section, left, top, room) {
+    const sectionItems = itemsBySection.get(section.id) || [];
+    const arrow = measure("→", "tm-p-arrow");
+    const steps = sectionItems.map(function (item, position) {
+      const last = position === sectionItems.length - 1;
+      const warned = badQuotes.has(item.id);
+      const extra = (warned ? 20 : 0) + (last ? 0 : 4 + arrow);
+      const label = fitText(shownId(item.id) + " " + roleName(item.role), room - extra - 14,
+                            "tm-p-chip").text;
+      const chip = measure(label, "tm-p-chip") + 14;
+      return { item: item, label: label, chip: chip, warned: warned, last: last,
+               width: chip + extra };
+    });
+    const flow = flowBoxes(steps.map(function (step) { return step.width; }), room, 6);
+    steps.forEach(function (step, number) {
+      const x = left + flow.places[number].x;
+      const y = top + flow.places[number].row * CARD.ROW;
+      const middle = y + CARD.CHIP_H / 2;
+      const group = s("g", { class: "tm-p-role", "data-item": step.item.id }, [
+        posterBox(x, y, step.chip, CARD.CHIP_H, POSTER.BG, 5),
+        posterText(step.label, "tm-p-chip", x + 7, middle),
+      ]);
+      let end = x + step.chip;
+      if (step.warned) {               // a quote of this item is not in its text
+        group.appendChild(s("circle", { cx: px(end + 12), cy: px(middle), r: 8,
+                                        fill: POSTER.TEXT }));
+        group.appendChild(posterText("!", "tm-p-warn", end + 12, middle, "middle"));
+        end += 20;
+      }
+      if (!step.last) group.appendChild(posterText("→", "tm-p-arrow", end + 4, middle));
+      card.appendChild(group);
+    });
+    return flow.rows ? (flow.rows - 1) * CARD.ROW + CARD.CHIP_H : 0;
+  }
+
+  // The thread map with its legend, drawn by the page's own drawMap at the poster's width.
+  function posterMap(svg, top) {
+    let y = posterPanel(svg, top, t("map"));
+    y += drawText(svg, t("poster_legend"), "tm-p-legend", POSTER.PAD, y, POSTER_CONTENT) + 10;
+    const map = s("svg", { class: "tm-p-map", x: POSTER.PAD, y: px(y) });
+    svg.appendChild(map);
+    drawMap(map, POSTER_CONTENT);
+    const width = Number(map.getAttribute("width"));
+    let height = Number(map.getAttribute("height"));
+    if (width > POSTER_CONTENT) {      // more columns than 14 px each allow: the map shrinks
+      height = height * POSTER_CONTENT / width;
+      setAttributes(map, { width: POSTER_CONTENT, height: px(height) });
+    }
+    map.querySelectorAll(".tm-lname").forEach(function (name) {    // no buttons on a poster
+      ["role", "tabindex", "aria-pressed"].forEach(function (key) { name.removeAttribute(key); });
+    });
+    return y + height;
+  }
+
+  // One chip per recurring example, its name in bold and where it appears, in rows that wrap.
+  function posterCases(svg, top) {
+    if (!cases.length) return top;
+    const y = posterPanel(svg, top, t("cases"));
+    const padX = 10;
+    const padY = 4;
+    const line = POSTER_TEXT["tm-p-case"].line;
+    const chips = cases.map(function (entry) {
+      const places = entry.at.map(shownId).join(" → ");
+      const layout = layoutRuns([
+        { text: entry.name, className: "tm-p-casename" },
+        { text: places ? "· " + places : "", className: "tm-p-case" },
+      ], POSTER_CONTENT - 2 * padX, 4);
+      return { layout: layout, width: layout.width + 2 * padX,
+               height: Math.max(layout.lines, 1) * line + 2 * padY };
+    });
+    const flow = flowBoxes(chips.map(function (chip) { return chip.width; }), POSTER_CONTENT, 8);
+    const rowHeights = [];
+    flow.places.forEach(function (place, number) {
+      rowHeights[place.row] = Math.max(rowHeights[place.row] || 0, chips[number].height);
+    });
+    const rowTops = [];
+    let rowTop = y;
+    rowHeights.forEach(function (height, row) {
+      rowTops[row] = rowTop;
+      rowTop += height + 8;
+    });
+    chips.forEach(function (chip, number) {
+      const x = POSTER.PAD + flow.places[number].x;
+      const chipTop = rowTops[flow.places[number].row];
+      const group = s("g", { class: "tm-p-case" },
+                      posterBox(x, chipTop, chip.width, chip.height, POSTER.BG, 6));
+      drawPieces(group, chip.layout, x + padX, chipTop + padY, line);
+      svg.appendChild(group);
+    });
+    return rowTop - 8;
+  }
+
+  // A rule, then the name of the tool and, for a built page, the data file of this version.
+  function posterFooter(svg, top) {
+    posterRule(svg, top + 24);
+    const parts = ["throughmap"];
+    if (hasVersion) parts.push(t("data_file") + ": " + dataFile());
+    return top + 36 + drawText(svg, parts.join(" · "), "tm-p-footer", POSTER.PAD, top + 36,
+                               POSTER_CONTENT);
+  }
+
+  // Draw a new poster and return its svg element, out of the document. It is drawn in a hidden
+  // box on the page, since text can only be measured there, and its height follows its content.
+  function buildPoster() {
+    const host = h("div", { class: "tm-measure", "aria-hidden": "true" });
+    const poster = s("svg", { id: "tm-poster", width: POSTER.WIDTH, role: "img" }, [
+      s("title", null, asText(essay.title) || "throughmap"),
+      s("style", null, POSTER_STYLE),
+    ]);
+    const background = s("rect", {
+      class: "tm-p-bg", x: 0, y: 0, width: POSTER.WIDTH, fill: POSTER.BG,
+    });
+    poster.appendChild(background);
+    host.appendChild(poster);
+    document.body.appendChild(host);
+    posterProbe = poster.appendChild(s("text", { x: 0, y: 0 }));
+    try {
+      let y = posterHeader(poster, POSTER.PAD);
+      y = posterFlow(poster, y);
+      y = posterMap(poster, y);
+      y = posterCases(poster, y);
+      y = posterFooter(poster, y);
+      const height = Math.ceil(y + POSTER.PAD);
+      setAttributes(poster, { height: height, viewBox: "0 0 " + POSTER.WIDTH + " " + height });
+      background.setAttribute("height", height);
+    } finally {
+      posterProbe.remove();
+      posterProbe = null;
+      host.remove();
+    }
+    poster.remove();
+    return poster;
+  }
+
+  // XML 1.0 allows these characters only. Any other (most control characters, and a surrogate
+  // that is not part of a pair) is left out of the markup, which could not be read with it.
+  function allowedInXML(code) {
+    return code === 0x9 || code === 0xA || code === 0xD || (code >= 0x20 && code <= 0xD7FF)
+      || (code >= 0xE000 && code <= 0xFFFD) || code >= 0x10000;
+  }
+  function escapeXML(value) {
+    return Array.from(String(value))
+      .filter(function (char) { return allowedInXML(char.codePointAt(0)); }).join("")
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+  // An svg element as standalone XML markup, with every text and attribute value escaped.
+  function toMarkup(node, root) {
+    if (node.nodeType === Node.TEXT_NODE) return escapeXML(node.nodeValue);
+    if (node.nodeType !== Node.ELEMENT_NODE) return "";
+    let markup = "<" + node.localName + (root ? ' xmlns="' + SVG_NS + '"' : "");
+    Array.prototype.forEach.call(node.attributes, function (attribute) {
+      markup += " " + attribute.name + '="' + escapeXML(attribute.value) + '"';
+    });
+    const inside = Array.prototype.map.call(node.childNodes, function (child) {
+      return toMarkup(child, false);
+    }).join("");
+    return markup + (inside ? ">" + inside + "</" + node.localName + ">" : "/>");
+  }
+
+  function posterSVG() {
+    return toMarkup(buildPoster(), true);
+  }
+
+  // tm_text.slugify: lowercase, each run of anything but letters and digits becomes "-", no "-"
+  // at either end, at most 60 characters; "essay" when nothing is left.
+  function slugify(text) {
+    const trim = function (value) { return value.replace(/^-+|-+$/g, ""); };
+    const slug = trim(asText(text).toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "-"));
+    return trim(Array.from(slug).slice(0, 60).join("")) || "essay";
+  }
+  // <stem>-throughmap.png: the draft's file name without its extension, else the title's slug.
+  function pngName() {
+    return (sourceStem().trim() || slugify(essay.title)) + "-throughmap.png";
+  }
+
+  function loadImage(url) {
+    return new Promise(function (resolve, reject) {
+      const image = new Image();
+      image.onload = function () { resolve(image); };
+      image.onerror = function () { reject(new Error("The browser could not draw the poster.")); };
+      image.src = url;
+    });
+  }
+  function canvasPNG(canvas) {
+    return new Promise(function (resolve, reject) {
+      canvas.toBlob(function (png) {
+        if (png) resolve(png);
+        else reject(new Error("The browser could not make a PNG of " + canvas.width + " by "
+                              + canvas.height + " pixels."));
+      }, "image/png");
+    });
+  }
+  // Hand ``blob`` to the browser to save as ``name``.
+  function download(blob, name) {
+    const url = URL.createObjectURL(blob);
+    const link = h("a", { href: url, download: name, hidden: true });
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(function () { URL.revokeObjectURL(url); }, 60000);   // once it is saved
+  }
+
+  // Paint the poster on a canvas at twice its size and save it as <stem>-throughmap.png. The
+  // poster goes in as an image from a blob URL, revoked once it is drawn: nothing comes from
+  // the network.
+  function exportPNG() {
+    return Promise.resolve().then(function () {
+      const poster = buildPoster();
+      const width = Number(poster.getAttribute("width"));
+      const height = Number(poster.getAttribute("height"));
+      const markup = new Blob([toMarkup(poster, true)], { type: "image/svg+xml" });
+      const source = URL.createObjectURL(markup);
+      return loadImage(source).then(function (image) {
+        const canvas = h("canvas", { width: width * POSTER.SCALE, height: height * POSTER.SCALE });
+        const context = canvas.getContext("2d");
+        context.fillStyle = POSTER.BG;
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.drawImage(image, 0, 0, canvas.width, canvas.height);
+        return canvasPNG(canvas);
+      }).finally(function () {
+        URL.revokeObjectURL(source);
+      });
+    }).then(function (png) {
+      download(png, pngName());
+    });
+  }
+
+  // #poster shows the poster alone, on white, in place of the page; leaving it brings the page
+  // back as it was.
+  const pageMain = document.querySelector("main");
+  let posterShown = null;
+
+  function showPoster(wanted) {
+    if (wanted === (posterShown !== null)) return;
+    if (wanted) {
+      posterShown = buildPoster();
+      pageMain.replaceWith(posterShown);
+    } else {
+      posterShown.replaceWith(pageMain);
+      posterShown = null;
+    }
+    document.documentElement.classList.toggle("tm-poster-mode", wanted);
+    if (!wanted) redrawMap();
+  }
+
+  // --- Deep links, keys, resizing and printing ----------------------------------------------
+
+  // #select=<id> pins an item and #lane=<id> isolates a lane; both may come, joined by "&".
+  // #poster shows the poster instead of the page.
+  function readHash() {
+    const found = {};
+    window.location.hash.replace(/^#/, "").split("&").forEach(function (part) {
+      if (!part) return;
+      const equals = part.indexOf("=");
+      try {
+        const key = decodeURIComponent(equals < 0 ? part : part.slice(0, equals));
+        found[key] = equals < 0 ? "" : decodeURIComponent(part.slice(equals + 1));
+      } catch (error) {
+        // a malformed escape: the part is ignored
+      }
+    });
+    return found;
+  }
+  function applyHash() {
+    const found = readHash();
+    showPoster(has(found, "poster"));
+    isolated = has(found, "lane") && laneById.has(found.lane) ? found.lane : null;
+    const selected = has(found, "select") && itemById.has(found.select);
+    pinned = selected ? { type: "item", id: found.select } : null;
+    preview = null;
+    applyState();
+  }
+
+  let resizeTimer = 0;
+  let openBeforePrint = null;
+
+  function listen() {
+    window.addEventListener("hashchange", applyHash);
+    window.addEventListener("resize", function () {
+      window.clearTimeout(resizeTimer);
+      resizeTimer = window.setTimeout(redrawMap, 150);
+    });
+    document.addEventListener("keydown", function (event) {
+      if (event.key !== "Escape" || (!pinned && isolated === null && preview === null)) return;
+      pinned = null;
+      preview = null;
+      isolated = null;
+      applyState();
+    });
+    // Printing shows the list and the gaps open, and leaves them as they were afterwards.
+    const list = document.getElementById("tm-list");
+    const gapsPanel = document.getElementById("tm-gaps");
+    window.addEventListener("beforeprint", function () {
+      if (!openBeforePrint) openBeforePrint = { list: list.open, gaps: gapsPanel.open };
+      list.open = true;
+      gapsPanel.open = true;
+    });
+    window.addEventListener("afterprint", function () {
+      if (!openBeforePrint) return;
+      list.open = openBeforePrint.list;
+      gapsPanel.open = openBeforePrint.gaps;
+      openBeforePrint = null;
+    });
+    document.getElementById("tm-print").addEventListener("click", function () { window.print(); });
+    const pngButton = document.getElementById("tm-png");
+    pngButton.addEventListener("click", function () {
+      if (typeof api.exportPNG !== "function") return;
+      setText("tm-note", "");
+      pngButton.disabled = true;       // one export at a time
+      Promise.resolve().then(function () { return api.exportPNG(); }).catch(function (error) {
+        setText("tm-note", String(error && error.message ? error.message : error));
+      }).then(function () {
+        pngButton.disabled = false;
+      });
+    });
+  }
+
+  // --- Start --------------------------------------------------------------------------------
+
+  const api = {
+    data: data,
+    select: select,
+    isolateLane: isolateLane,
+    posterSVG: posterSVG,
+    exportPNG: exportPNG,
+  };
+  window.throughmap = api;
+
+  renderHeader();
+  renderFlow();
+  renderMapPanel();
+  renderList();
+  renderCases();
+  renderGaps();
+  renderFooter();
+  listen();
+  redrawMap();                         // last, once the page is as tall as it gets
+  applyHash();
+});
+</script>
+<script id="throughmap-data" type="application/json">{"schema": "throughmap/1", "essay": {"title": "The Federalist No. 10", "source": "federalist-10.md", "source_kind": "md", "language": "en", "word_count": 2994}, "ui_language": "en", "thesis": "Faction's causes cannot be removed without destroying liberty, but a large republic, the Union, controls its effects through representation and many interests.", "questions": [{"id": "Q1", "text": "Can the causes of faction be removed?"}, {"id": "Q2", "text": "How can a majority faction be checked without ending popular government?"}], "lanes": [{"id": "causes", "kind": "question", "label": "Causes", "question": "Q1"}, {"id": "majority", "kind": "question", "label": "Majority", "question": "Q2"}, {"id": "liberty", "kind": "concept", "label": "Liberty", "sub": "at stake", "question": "Q1"}, {"id": "property", "kind": "concept", "label": "Property", "question": "Q1"}, {"id": "repr", "kind": "concept", "label": "Representation", "sub": "delegation to a few", "question": "Q2"}, {"id": "extent", "kind": "concept", "label": "Extent", "sub": "the Union", "question": "Q2"}], "sections": [{"id": "S1", "short": "Faction", "title": "", "inferred": true, "first": "P1", "last": "P2", "conclusion": "Faction, whether a majority or a minority, is the mortal disease of popular government.", "baton": "How can faction be cured?", "answers": []}, {"id": "S2", "short": "Causes", "title": "", "inferred": true, "first": "P3", "last": "P10", "conclusion": "Faction's causes can't be removed without ending liberty; its effects must be controlled.", "baton": "How can its effects be controlled?", "answers": ["Q1"]}, {"id": "S3", "short": "Majority", "title": "", "inferred": true, "first": "P11", "last": "P13", "conclusion": "The danger is a majority faction, and a pure democracy has no means to check it.", "baton": "Can a republic check a majority?", "answers": []}, {"id": "S4", "short": "Republic", "title": "", "inferred": true, "first": "P14", "last": "P19", "conclusion": "Delegation can refine public views, and a large republic makes a fit choice more likely.", "baton": "What does a larger sphere add?", "answers": ["Q2"]}, {"id": "S5", "short": "Extent", "title": "", "inferred": true, "first": "P20", "last": "P23", "conclusion": "The Union's size makes an unjust majority less likely to form or act: a republican remedy.", "baton": "", "answers": ["Q2"]}], "paragraphs": [{"id": "P1", "kind": "paragraph", "section": "S1", "text": "AMONG the numerous advantages promised by a wellconstructed Union, none deserves to be more accurately developed than its tendency to break and control the violence of faction. The friend of popular governments never finds himself so much alarmed for their character and fate, as when he contemplates their propensity to this dangerous vice. He will not fail, therefore, to set a due value on any plan which, without violating the principles to which he is attached, provides a proper cure for it. The instability, injustice, and confusion introduced into the public councils, have, in truth, been the mortal diseases under which popular governments have everywhere perished; as they continue to be the favorite and fruitful topics from which the adversaries to liberty derive their most specious declamations. The valuable improvements made by the American constitutions on the popular models, both ancient and modern, cannot certainly be too much admired; but it would be an unwarrantable partiality, to contend that they have as effectually obviated the danger on this side, as was wished and expected. Complaints are everywhere heard from our most considerate and virtuous citizens, equally the friends of public and private faith, and of public and personal liberty, that our governments are too unstable, that the public good is disregarded in the conflicts of rival parties, and that measures are too often decided, not according to the rules of justice and the rights of the minor party, but by the superior force of an interested and overbearing majority. However anxiously we may wish that these complaints had no foundation, the evidence, of known facts will not permit us to deny that they are in some degree true. It will be found, indeed, on a candid review of our situation, that some of the distresses under which we labor have been erroneously charged on the operation of our governments; but it will be found, at the same time, that other causes will not alone account for many of our heaviest misfortunes; and, particularly, for that prevailing and increasing distrust of public engagements, and alarm for private rights, which are echoed from one end of the continent to the other. These must be chiefly, if not wholly, effects of the unsteadiness and injustice with which a factious spirit has tainted our public administrations.", "role": "problem", "label": "Faction plagues popular rule", "evidence": "The friend of popular governments never finds himself so much alarmed for their character and fate, as when he contemplates their propensity to this dangerous vice.", "lanes": {"majority": {"weight": "minor", "quote": "by the superior force of an interested and overbearing majority"}, "liberty": {"weight": "minor", "quote": "the adversaries to liberty derive their most specious declamations"}, "extent": {"weight": "minor", "quote": "advantages promised by a wellconstructed Union"}}}, {"id": "P2", "kind": "paragraph", "section": "S1", "text": "By a faction, I understand a number of citizens, whether amounting to a majority or a minority of the whole, who are united and actuated by some common impulse of passion, or of interest, adversed to the rights of other citizens, or to the permanent and aggregate interests of the community.", "role": "context", "label": "Faction defined", "evidence": "a number of citizens, whether amounting to a majority or a minority of the whole, who are united and actuated by some common impulse of passion, or of interest, adversed to the rights of other citizens", "lanes": {"majority": {"weight": "minor", "quote": "whether amounting to a majority or a minority of the whole"}}}, {"id": "P3", "kind": "paragraph", "section": "S2", "text": "There are two methods of curing the mischiefs of faction: the one, by removing its causes; the other, by controlling its effects.", "role": "framework", "label": "Two cures: causes or effects", "evidence": "There are two methods of curing the mischiefs of faction", "lanes": {"causes": {"weight": "major", "quote": "the one, by removing its causes"}, "majority": {"weight": "minor", "quote": "the other, by controlling its effects"}}}, {"id": "P4", "kind": "paragraph", "section": "S2", "text": "There are again two methods of removing the causes of faction: the one, by destroying the liberty which is essential to its existence; the other, by giving to every citizen the same opinions, the same passions, and the same interests.", "role": "framework", "label": "Two ways to remove causes", "evidence": "the one, by destroying the liberty which is essential to its existence; the other, by giving to every citizen the same opinions, the same passions, and the same interests", "lanes": {"causes": {"weight": "major", "quote": "There are again two methods of removing the causes of faction"}, "liberty": {"weight": "minor", "quote": "by destroying the liberty which is essential to its existence"}}}, {"id": "P5", "kind": "paragraph", "section": "S2", "text": "It could never be more truly said than of the first remedy, that it was worse than the disease. Liberty is to faction what air is to fire, an aliment without which it instantly expires. But it could not be less folly to abolish liberty, which is essential to political life, because it nourishes faction, than it would be to wish the annihilation of air, which is essential to animal life, because it imparts to fire its destructive agency.", "role": "claim", "label": "Abolishing liberty is folly", "evidence": "it could not be less folly to abolish liberty, which is essential to political life, because it nourishes faction", "lanes": {"causes": {"weight": "major", "quote": "It could never be more truly said than of the first remedy, that it was worse than the disease"}, "liberty": {"weight": "major", "quote": "Liberty is to faction what air is to fire, an aliment without which it instantly expires"}}}, {"id": "P6", "kind": "paragraph", "section": "S2", "text": "The second expedient is as impracticable as the first would be unwise. As long as the reason of man continues fallible, and he is at liberty to exercise it, different opinions will be formed. As long as the connection subsists between his reason and his self-love, his opinions and his passions will have a reciprocal influence on each other; and the former will be objects to which the latter will attach themselves. The diversity in the faculties of men, from which the rights of property originate, is not less an insuperable obstacle to a uniformity of interests. The protection of these faculties is the first object of government. From the protection of different and unequal faculties of acquiring property, the possession of different degrees and kinds of property immediately results; and from the influence of these on the sentiments and views of the respective proprietors, ensues a division of the society into different interests and parties.", "role": "claim", "label": "Uniformity is impracticable", "evidence": "The second expedient is as impracticable as the first would be unwise.", "lanes": {"causes": {"weight": "major", "quote": "different opinions will be formed"}, "liberty": {"weight": "minor", "quote": "he is at liberty to exercise it"}, "property": {"weight": "major", "quote": "The diversity in the faculties of men, from which the rights of property originate, is not less an insuperable obstacle to a uniformity of interests"}}}, {"id": "P7", "kind": "paragraph", "section": "S2", "text": "The latent causes of faction are thus sown in the nature of man; and we see them everywhere brought into different degrees of activity, according to the different circumstances of civil society. A zeal for different opinions concerning religion, concerning government, and many other points, as well of speculation as of practice; an attachment to different leaders ambitiously contending for pre-eminence and power; or to persons of other descriptions whose fortunes have been interesting to the human passions, have, in turn, divided mankind into parties, inflamed them with mutual animosity, and rendered them much more disposed to vex and oppress each other than to co-operate for their common good. So strong is this propensity of mankind to fall into mutual animosities, that where no substantial occasion presents itself, the most frivolous and fanciful distinctions have been sufficient to kindle their unfriendly passions and excite their most violent conflicts. But the most common and durable source of factions has been the various and unequal distribution of property. Those who hold and those who are without property have ever formed distinct interests in society. Those who are creditors, and those who are debtors, fall under a like discrimination. A landed interest, a manufacturing interest, a mercantile interest, a moneyed interest, with many lesser interests, grow up of necessity in civilized nations, and divide them into different classes, actuated by different sentiments and views. The regulation of these various and interfering interests forms the principal task of modern legislation, and involves the spirit of party and faction in the necessary and ordinary operations of the government.", "role": "claim", "label": "Causes sown in human nature", "evidence": "The latent causes of faction are thus sown in the nature of man", "lanes": {"causes": {"weight": "major", "quote": "the most frivolous and fanciful distinctions have been sufficient to kindle their unfriendly passions"}, "property": {"weight": "major", "quote": "the most common and durable source of factions has been the various and unequal distribution of property"}}}, {"id": "P8", "kind": "paragraph", "section": "S2", "text": "No man is allowed to be a judge in his own cause, because his interest would certainly bias his judgment, and, not improbably, corrupt his integrity. With equal, nay with greater reason, a body of men are unfit to be both judges and parties at the same time; yet what are many of the most important acts of legislation, but so many judicial determinations, not indeed concerning the rights of single persons, but concerning the rights of large bodies of citizens? And what are the different classes of legislators but advocates and parties to the causes which they determine? Is a law proposed concerning private debts? It is a question to which the creditors are parties on one side and the debtors on the other. Justice ought to hold the balance between them. Yet the parties are, and must be, themselves the judges; and the most numerous party, or, in other words, the most powerful faction must be expected to prevail. Shall domestic manufactures be encouraged, and in what degree, by restrictions on foreign manufactures? are questions which would be differently decided by the landed and the manufacturing classes, and probably by neither with a sole regard to justice and the public good. The apportionment of taxes on the various descriptions of property is an act which seems to require the most exact impartiality; yet there is, perhaps, no legislative act in which greater opportunity and temptation are given to a predominant party to trample on the rules of justice. Every shilling with which they overburden the inferior number, is a shilling saved to their own pockets.", "role": "claim", "label": "Legislators judge own causes", "evidence": "And what are the different classes of legislators but advocates and parties to the causes which they determine?", "lanes": {"causes": {"weight": "major", "quote": "Yet the parties are, and must be, themselves the judges"}, "majority": {"weight": "minor", "quote": "the most numerous party, or, in other words, the most powerful faction must be expected to prevail"}, "property": {"weight": "minor", "quote": "The apportionment of taxes on the various descriptions of property"}}}, {"id": "P9", "kind": "paragraph", "section": "S2", "text": "It is in vain to say that enlightened statesmen will be able to adjust these clashing interests, and render them all subservient to the public good. Enlightened statesmen will not always be at the helm. Nor, in many cases, can such an adjustment be made at all without taking into view indirect and remote considerations, which will rarely prevail over the immediate interest which one party may find in disregarding the rights of another or the good of the whole.", "role": "counter", "label": "Wise statesmen won't suffice", "evidence": "Enlightened statesmen will not always be at the helm.", "lanes": {"causes": {"weight": "major", "quote": "It is in vain to say that enlightened statesmen will be able to adjust these clashing interests"}}}, {"id": "P10", "kind": "paragraph", "section": "S2", "text": "The inference to which we are brought is, that the CAUSES of faction cannot be removed, and that relief is only to be sought in the means of controlling its EFFECTS.", "role": "implication", "label": "Causes stay; control effects", "evidence": "The inference to which we are brought is, that the CAUSES of faction cannot be removed", "lanes": {"causes": {"weight": "major", "quote": "the CAUSES of faction cannot be removed"}, "majority": {"weight": "minor", "quote": "relief is only to be sought in the means of controlling its EFFECTS"}}}, {"id": "P11", "kind": "paragraph", "section": "S3", "text": "If a faction consists of less than a majority, relief is supplied by the republican principle, which enables the majority to defeat its sinister views by regular vote. It may clog the administration, it may convulse the society; but it will be unable to execute and mask its violence under the forms of the Constitution. When a majority is included in a faction, the form of popular government, on the other hand, enables it to sacrifice to its ruling passion or interest both the public good and the rights of other citizens. To secure the public good and private rights against the danger of such a faction, and at the same time to preserve the spirit and the form of popular government, is then the great object to which our inquiries are directed. Let me add that it is the great desideratum by which this form of government can be rescued from the opprobrium under which it has so long labored, and be recommended to the esteem and adoption of mankind.", "role": "problem", "label": "The danger: majority faction", "evidence": "When a majority is included in a faction, the form of popular government, on the other hand, enables it to sacrifice to its ruling passion or interest both the public good and the rights of other citizens.", "lanes": {"majority": {"weight": "major", "quote": "To secure the public good and private rights against the danger of such a faction, and at the same time to preserve the spirit and the form of popular government"}}}, {"id": "P12", "kind": "paragraph", "section": "S3", "text": "By what means is this object attainable? Evidently by one of two only. Either the existence of the same passion or interest in a majority at the same time must be prevented, or the majority, having such coexistent passion or interest, must be rendered, by their number and local situation, unable to concert and carry into effect schemes of oppression. If the impulse and the opportunity be suffered to coincide, we well know that neither moral nor religious motives can be relied on as an adequate control. They are not found to be such on the injustice and violence of individuals, and lose their efficacy in proportion to the number combined together, that is, in proportion as their efficacy becomes needful.", "role": "framework", "label": "Two means against a majority", "evidence": "Either the existence of the same passion or interest in a majority at the same time must be prevented, or the majority, having such coexistent passion or interest, must be rendered, by their number and local situation, unable to concert and carry into effect schemes of oppression.", "lanes": {"majority": {"weight": "major", "quote": "By what means is this object attainable? Evidently by one of two only."}, "extent": {"weight": "minor", "quote": "by their number and local situation"}}}, {"id": "P13", "kind": "paragraph", "section": "S3", "text": "From this view of the subject it may be concluded that a pure democracy, by which I mean a society consisting of a small number of citizens, who assemble and administer the government in person, can admit of no cure for the mischiefs of faction. A common passion or interest will, in almost every case, be felt by a majority of the whole; a communication and concert result from the form of government itself; and there is nothing to check the inducements to sacrifice the weaker party or an obnoxious individual. Hence it is that such democracies have ever been spectacles of turbulence and contention; have ever been found incompatible with personal security or the rights of property; and have in general been as short in their lives as they have been violent in their deaths. Theoretic politicians, who have patronized this species of government, have erroneously supposed that by reducing mankind to a perfect equality in their political rights, they would, at the same time, be perfectly equalized and assimilated in their possessions, their opinions, and their passions.", "role": "implication", "label": "Pure democracy has no cure", "evidence": "a pure democracy, by which I mean a society consisting of a small number of citizens, who assemble and administer the government in person, can admit of no cure for the mischiefs of faction", "lanes": {"majority": {"weight": "major", "quote": "A common passion or interest will, in almost every case, be felt by a majority of the whole"}, "property": {"weight": "minor", "quote": "incompatible with personal security or the rights of property"}, "extent": {"weight": "minor", "quote": "a society consisting of a small number of citizens"}}}, {"id": "P14", "kind": "paragraph", "section": "S4", "text": "A republic, by which I mean a government in which the scheme of representation takes place, opens a different prospect, and promises the cure for which we are seeking. Let us examine the points in which it varies from pure democracy, and we shall comprehend both the nature of the cure and the efficacy which it must derive from the Union.", "role": "thesis", "label": "A republic promises the cure", "evidence": "A republic, by which I mean a government in which the scheme of representation takes place, opens a different prospect, and promises the cure for which we are seeking.", "lanes": {"majority": {"weight": "major", "quote": "promises the cure for which we are seeking"}, "repr": {"weight": "minor", "quote": "a government in which the scheme of representation takes place"}, "extent": {"weight": "minor", "quote": "the efficacy which it must derive from the Union"}}}, {"id": "P15", "kind": "paragraph", "section": "S4", "text": "The two great points of difference between a democracy and a republic are: first, the delegation of the government, in the latter, to a small number of citizens elected by the rest; secondly, the greater number of citizens, and greater sphere of country, over which the latter may be extended.", "role": "framework", "label": "Delegation, larger sphere", "evidence": "first, the delegation of the government, in the latter, to a small number of citizens elected by the rest; secondly, the greater number of citizens, and greater sphere of country, over which the latter may be extended", "lanes": {"repr": {"weight": "major", "quote": "the delegation of the government, in the latter, to a small number of citizens elected by the rest"}, "extent": {"weight": "major", "quote": "the greater number of citizens, and greater sphere of country, over which the latter may be extended"}}}, {"id": "P16", "kind": "paragraph", "section": "S4", "text": "The effect of the first difference is, on the one hand, to refine and enlarge the public views, by passing them through the medium of a chosen body of citizens, whose wisdom may best discern the true interest of their country, and whose patriotism and love of justice will be least likely to sacrifice it to temporary or partial considerations. Under such a regulation, it may well happen that the public voice, pronounced by the representatives of the people, will be more consonant to the public good than if pronounced by the people themselves, convened for the purpose. On the other hand, the effect may be inverted. Men of factious tempers, of local prejudices, or of sinister designs, may, by intrigue, by corruption, or by other means, first obtain the suffrages, and then betray the interests, of the people. The question resulting is, whether small or extensive republics are more favorable to the election of proper guardians of the public weal; and it is clearly decided in favor of the latter by two obvious considerations:", "role": "claim", "label": "May refine views, or betray", "evidence": "it may well happen that the public voice, pronounced by the representatives of the people, will be more consonant to the public good than if pronounced by the people themselves", "lanes": {"repr": {"weight": "major", "quote": "to refine and enlarge the public views, by passing them through the medium of a chosen body of citizens"}, "extent": {"weight": "minor", "quote": "whether small or extensive republics are more favorable to the election of proper guardians of the public weal"}}}, {"id": "P17", "kind": "paragraph", "section": "S4", "text": "In the first place, it is to be remarked that, however small the republic may be, the representatives must be raised to a certain number, in order to guard against the cabals of a few; and that, however large it may be, they must be limited to a certain number, in order to guard against the confusion of a multitude. Hence, the number of representatives in the two cases not being in proportion to that of the two constituents, and being proportionally greater in the small republic, it follows that, if the proportion of fit characters be not less in the large than in the small republic, the former will present a greater option, and consequently a greater probability of a fit choice.", "role": "claim", "label": "Greater odds of a fit choice", "evidence": "if the proportion of fit characters be not less in the large than in the small republic, the former will present a greater option, and consequently a greater probability of a fit choice", "lanes": {"repr": {"weight": "major", "quote": "the representatives must be raised to a certain number, in order to guard against the cabals of a few"}, "extent": {"weight": "minor", "quote": "however large it may be, they must be limited to a certain number"}}}, {"id": "P18", "kind": "paragraph", "section": "S4", "text": "In the next place, as each representative will be chosen by a greater number of citizens in the large than in the small republic, it will be more difficult for unworthy candidates to practice with success the vicious arts by which elections are too often carried; and the suffrages of the people being more free, will be more likely to centre in men who possess the most attractive merit and the most diffusive and established characters.", "role": "claim", "label": "Vicious arts harder to use", "evidence": "it will be more difficult for unworthy candidates to practice with success the vicious arts by which elections are too often carried", "lanes": {"repr": {"weight": "major", "quote": "will be more likely to centre in men who possess the most attractive merit and the most diffusive and established characters"}, "extent": {"weight": "minor", "quote": "chosen by a greater number of citizens in the large than in the small republic"}}}, {"id": "P19", "kind": "paragraph", "section": "S4", "text": "It must be confessed that in this, as in most other cases, there is a mean, on both sides of which inconveniences will be found to lie. By enlarging too much the number of electors, you render the representatives too little acquainted with all their local circumstances and lesser interests; as by reducing it too much, you render him unduly attached to these, and too little fit to comprehend and pursue great and national objects. The federal Constitution forms a happy combination in this respect; the great and aggregate interests being referred to the national, the local and particular to the State legislatures.", "role": "counter", "label": "Size has limits; federal mix", "evidence": "there is a mean, on both sides of which inconveniences will be found to lie", "lanes": {"repr": {"weight": "major", "quote": "By enlarging too much the number of electors, you render the representatives too little acquainted with all their local circumstances and lesser interests"}}}, {"id": "P20", "kind": "paragraph", "section": "S5", "text": "The other point of difference is, the greater number of citizens and extent of territory which may be brought within the compass of republican than of democratic government; and it is this circumstance principally which renders factious combinations less to be dreaded in the former than in the latter. The smaller the society, the fewer probably will be the distinct parties and interests composing it; the fewer the distinct parties and interests, the more frequently will a majority be found of the same party; and the smaller the number of individuals composing a majority, and the smaller the compass within which they are placed, the more easily will they concert and execute their plans of oppression. Extend the sphere, and you take in a greater variety of parties and interests; you make it less probable that a majority of the whole will have a common motive to invade the rights of other citizens; or if such a common motive exists, it will be more difficult for all who feel it to discover their own strength, and to act in unison with each other. Besides other impediments, it may be remarked that, where there is a consciousness of unjust or dishonorable purposes, communication is always checked by distrust in proportion to the number whose concurrence is necessary.", "role": "claim", "label": "More parties, safer rights", "evidence": "you make it less probable that a majority of the whole will have a common motive to invade the rights of other citizens", "lanes": {"majority": {"weight": "major", "quote": "it will be more difficult for all who feel it to discover their own strength, and to act in unison with each other"}, "extent": {"weight": "major", "quote": "Extend the sphere, and you take in a greater variety of parties and interests"}}}, {"id": "P21", "kind": "paragraph", "section": "S5", "text": "Hence, it clearly appears, that the same advantage which a republic has over a democracy, in controlling the effects of faction, is enjoyed by a large over a small republic,--is enjoyed by the Union over the States composing it. Does the advantage consist in the substitution of representatives whose enlightened views and virtuous sentiments render them superior to local prejudices and schemes of injustice? It will not be denied that the representation of the Union will be most likely to possess these requisite endowments. Does it consist in the greater security afforded by a greater variety of parties, against the event of any one party being able to outnumber and oppress the rest? In an equal degree does the increased variety of parties comprised within the Union, increase this security. Does it, in fine, consist in the greater obstacles opposed to the concert and accomplishment of the secret wishes of an unjust and interested majority? Here, again, the extent of the Union gives it the most palpable advantage.", "role": "synthesis", "label": "Union's edge over the States", "evidence": "is enjoyed by the Union over the States composing it", "lanes": {"majority": {"weight": "major", "quote": "the greater obstacles opposed to the concert and accomplishment of the secret wishes of an unjust and interested majority"}, "repr": {"weight": "major", "quote": "Does the advantage consist in the substitution of representatives whose enlightened views and virtuous sentiments render them superior to local prejudices and schemes of injustice?"}, "extent": {"weight": "major", "quote": "Here, again, the extent of the Union gives it the most palpable advantage."}}}, {"id": "P22", "kind": "paragraph", "section": "S5", "text": "The influence of factious leaders may kindle a flame within their particular States, but will be unable to spread a general conflagration through the other States. A religious sect may degenerate into a political faction in a part of the Confederacy; but the variety of sects dispersed over the entire face of it must secure the national councils against any danger from that source. A rage for paper money, for an abolition of debts, for an equal division of property, or for any other improper or wicked project, will be less apt to pervade the whole body of the Union than a particular member of it; in the same proportion as such a malady is more likely to taint a particular county or district, than an entire State.", "role": "example", "label": "Local flames won't spread", "evidence": "The influence of factious leaders may kindle a flame within their particular States, but will be unable to spread a general conflagration through the other States.", "lanes": {"property": {"weight": "minor", "quote": "for an equal division of property"}, "extent": {"weight": "major", "quote": "the variety of sects dispersed over the entire face of it must secure the national councils against any danger from that source"}}}, {"id": "P23", "kind": "paragraph", "section": "S5", "text": "In the extent and proper structure of the Union, therefore, we behold a republican remedy for the diseases most incident to republican government. And according to the degree of pleasure and pride we feel in being republicans, ought to be our zeal in cherishing the spirit and supporting the character of Federalists.", "role": "conclusion", "label": "The Union: republican remedy", "evidence": "In the extent and proper structure of the Union, therefore, we behold a republican remedy for the diseases most incident to republican government.", "lanes": {"majority": {"weight": "major", "quote": "a republican remedy for the diseases most incident to republican government"}, "extent": {"weight": "major", "quote": "In the extent and proper structure of the Union"}}}], "cases": [{"name": "Disease and cure", "at": ["P1", "P3", "P5", "P13", "P14", "P22", "P23"], "note": "Faction is a disease throughout: popular governments perish of it (P1), and the Union is its republican remedy (P23)."}, {"name": "Fire", "at": ["P5", "P7", "P22"], "note": "Faction as fire: liberty is the air it needs (P5), the slightest distinction kindles men's passions (P7), and in the Union a State's flame cannot spread (P22)."}, {"name": "Creditors and debtors", "at": ["P7", "P8", "P22"], "note": "Debt divides creditors from debtors (P7), makes both judges of their own law (P8) and returns as a rage to abolish debts (P22)."}, {"name": "Religion", "at": ["P7", "P12", "P22"], "note": "Religious zeal divides men (P7), religious motives fail to restrain a majority (P12), and a variety of sects guards the national councils (P22)."}, {"name": "Pure democracy", "at": ["P13", "P14", "P15", "P16", "P20", "P21"], "note": "Pure democracy is the foil: it admits no cure (P13), and the republic's delegation (P14 to P16) and larger sphere (P20, P21) are measured against it."}, {"name": "Enlightened statesmen", "at": ["P9", "P16", "P21"], "note": "P9 doubts that enlightened statesmen will always be at the helm; P16 and P21 expect a large republic's representatives to be likelier to have such views."}], "gaps": [{"at": ["P12", "P16", "P21"], "note": "P12 says a majority faction can be checked by one of two means only; P21 credits the Union with three advantages, and the first, better representatives, is tied to neither means.", "direction": "Tie the case for representatives in P16 to P19 to one of P12's two means, or let P12 allow for a third, so that the reader can match each of P21's advantages to a means."}], "version": 1, "generated_at": "2026-10-18T16:26:20Z", "computed": {"runs": {"causes": {"span": ["P3", "P10"], "solid": [["P3", "P4", "P5", "P6", "P7", "P8", "P9", "P10"]]}, "majority": {"span": ["P1", "P23"], "solid": [["P1", "P2", "P3"], ["P10", "P11", "P12", "P13", "P14"], ["P20", "P21"]]}, "liberty": {"span": ["P1", "P6"], "solid": [["P4", "P5", "P6"]]}, "property": {"span": ["P6", "P22"], "solid": [["P6", "P7", "P8"]]}, "repr": {"span": ["P14", "P21"], "solid": [["P14", "P15", "P16", "P17", "P18", "P19"]]}, "extent": {"span": ["P1", "P23"], "solid": [["P12", "P13", "P14", "P15", "P16", "P17", "P18"], ["P20", "P21", "P22", "P23"]]}}, "observations": [{"type": "quiet", "lane": "property", "from": "P13", "to": "P22", "length": 8}, {"type": "quiet", "lane": "extent", "from": "P1", "to": "P12", "length": 10}, {"type": "unresolved", "lane": "causes"}, {"type": "unresolved", "lane": "liberty"}]}}</script>
+</body>
+</html>

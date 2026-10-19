@@ -1,0 +1,784 @@
+{
+ "schema": "throughmap/1",
+ "essay": {
+  "title": "The Federalist No. 10",
+  "source": "federalist-10.md",
+  "source_kind": "md",
+  "language": "en",
+  "word_count": 2994
+ },
+ "ui_language": "en",
+ "thesis": "Faction's causes cannot be removed without destroying liberty, but a large republic, the Union, controls its effects through representation and many interests.",
+ "questions": [
+  {
+   "id": "Q1",
+   "text": "Can the causes of faction be removed?"
+  },
+  {
+   "id": "Q2",
+   "text": "How can a majority faction be checked without ending popular government?"
+  }
+ ],
+ "lanes": [
+  {
+   "id": "causes",
+   "kind": "question",
+   "label": "Causes",
+   "question": "Q1"
+  },
+  {
+   "id": "majority",
+   "kind": "question",
+   "label": "Majority",
+   "question": "Q2"
+  },
+  {
+   "id": "liberty",
+   "kind": "concept",
+   "label": "Liberty",
+   "sub": "at stake",
+   "question": "Q1"
+  },
+  {
+   "id": "property",
+   "kind": "concept",
+   "label": "Property",
+   "question": "Q1"
+  },
+  {
+   "id": "repr",
+   "kind": "concept",
+   "label": "Representation",
+   "sub": "delegation to a few",
+   "question": "Q2"
+  },
+  {
+   "id": "extent",
+   "kind": "concept",
+   "label": "Extent",
+   "sub": "the Union",
+   "question": "Q2"
+  }
+ ],
+ "sections": [
+  {
+   "id": "S1",
+   "short": "Faction",
+   "title": "",
+   "inferred": true,
+   "first": "P1",
+   "last": "P2",
+   "conclusion": "Faction, whether a majority or a minority, is the mortal disease of popular government.",
+   "baton": "How can faction be cured?",
+   "answers": []
+  },
+  {
+   "id": "S2",
+   "short": "Causes",
+   "title": "",
+   "inferred": true,
+   "first": "P3",
+   "last": "P10",
+   "conclusion": "Faction's causes can't be removed without ending liberty; its effects must be controlled.",
+   "baton": "How can its effects be controlled?",
+   "answers": [
+    "Q1"
+   ]
+  },
+  {
+   "id": "S3",
+   "short": "Majority",
+   "title": "",
+   "inferred": true,
+   "first": "P11",
+   "last": "P13",
+   "conclusion": "The danger is a majority faction, and a pure democracy has no means to check it.",
+   "baton": "Can a republic check a majority?",
+   "answers": []
+  },
+  {
+   "id": "S4",
+   "short": "Republic",
+   "title": "",
+   "inferred": true,
+   "first": "P14",
+   "last": "P19",
+   "conclusion": "Delegation can refine public views, and a large republic makes a fit choice more likely.",
+   "baton": "What does a larger sphere add?",
+   "answers": [
+    "Q2"
+   ]
+  },
+  {
+   "id": "S5",
+   "short": "Extent",
+   "title": "",
+   "inferred": true,
+   "first": "P20",
+   "last": "P23",
+   "conclusion": "The Union's size makes an unjust majority less likely to form or act: a republican remedy.",
+   "baton": "",
+   "answers": [
+    "Q2"
+   ]
+  }
+ ],
+ "paragraphs": [
+  {
+   "id": "P1",
+   "kind": "paragraph",
+   "section": "S1",
+   "text": "AMONG the numerous advantages promised by a wellconstructed Union, none deserves to be more accurately developed than its tendency to break and control the violence of faction. The friend of popular governments never finds himself so much alarmed for their character and fate, as when he contemplates their propensity to this dangerous vice. He will not fail, therefore, to set a due value on any plan which, without violating the principles to which he is attached, provides a proper cure for it. The instability, injustice, and confusion introduced into the public councils, have, in truth, been the mortal diseases under which popular governments have everywhere perished; as they continue to be the favorite and fruitful topics from which the adversaries to liberty derive their most specious declamations. The valuable improvements made by the American constitutions on the popular models, both ancient and modern, cannot certainly be too much admired; but it would be an unwarrantable partiality, to contend that they have as effectually obviated the danger on this side, as was wished and expected. Complaints are everywhere heard from our most considerate and virtuous citizens, equally the friends of public and private faith, and of public and personal liberty, that our governments are too unstable, that the public good is disregarded in the conflicts of rival parties, and that measures are too often decided, not according to the rules of justice and the rights of the minor party, but by the superior force of an interested and overbearing majority. However anxiously we may wish that these complaints had no foundation, the evidence, of known facts will not permit us to deny that they are in some degree true. It will be found, indeed, on a candid review of our situation, that some of the distresses under which we labor have been erroneously charged on the operation of our governments; but it will be found, at the same time, that other causes will not alone account for many of our heaviest misfortunes; and, particularly, for that prevailing and increasing distrust of public engagements, and alarm for private rights, which are echoed from one end of the continent to the other. These must be chiefly, if not wholly, effects of the unsteadiness and injustice with which a factious spirit has tainted our public administrations.",
+   "role": "problem",
+   "label": "Faction plagues popular rule",
+   "evidence": "The friend of popular governments never finds himself so much alarmed for their character and fate, as when he contemplates their propensity to this dangerous vice.",
+   "lanes": {
+    "majority": {
+     "weight": "minor",
+     "quote": "by the superior force of an interested and overbearing majority"
+    },
+    "liberty": {
+     "weight": "minor",
+     "quote": "the adversaries to liberty derive their most specious declamations"
+    },
+    "extent": {
+     "weight": "minor",
+     "quote": "advantages promised by a wellconstructed Union"
+    }
+   }
+  },
+  {
+   "id": "P2",
+   "kind": "paragraph",
+   "section": "S1",
+   "text": "By a faction, I understand a number of citizens, whether amounting to a majority or a minority of the whole, who are united and actuated by some common impulse of passion, or of interest, adversed to the rights of other citizens, or to the permanent and aggregate interests of the community.",
+   "role": "context",
+   "label": "Faction defined",
+   "evidence": "a number of citizens, whether amounting to a majority or a minority of the whole, who are united and actuated by some common impulse of passion, or of interest, adversed to the rights of other citizens",
+   "lanes": {
+    "majority": {
+     "weight": "minor",
+     "quote": "whether amounting to a majority or a minority of the whole"
+    }
+   }
+  },
+  {
+   "id": "P3",
+   "kind": "paragraph",
+   "section": "S2",
+   "text": "There are two methods of curing the mischiefs of faction: the one, by removing its causes; the other, by controlling its effects.",
+   "role": "framework",
+   "label": "Two cures: causes or effects",
+   "evidence": "There are two methods of curing the mischiefs of faction",
+   "lanes": {
+    "causes": {
+     "weight": "major",
+     "quote": "the one, by removing its causes"
+    },
+    "majority": {
+     "weight": "minor",
+     "quote": "the other, by controlling its effects"
+    }
+   }
+  },
+  {
+   "id": "P4",
+   "kind": "paragraph",
+   "section": "S2",
+   "text": "There are again two methods of removing the causes of faction: the one, by destroying the liberty which is essential to its existence; the other, by giving to every citizen the same opinions, the same passions, and the same interests.",
+   "role": "framework",
+   "label": "Two ways to remove causes",
+   "evidence": "the one, by destroying the liberty which is essential to its existence; the other, by giving to every citizen the same opinions, the same passions, and the same interests",
+   "lanes": {
+    "causes": {
+     "weight": "major",
+     "quote": "There are again two methods of removing the causes of faction"
+    },
+    "liberty": {
+     "weight": "minor",
+     "quote": "by destroying the liberty which is essential to its existence"
+    }
+   }
+  },
+  {
+   "id": "P5",
+   "kind": "paragraph",
+   "section": "S2",
+   "text": "It could never be more truly said than of the first remedy, that it was worse than the disease. Liberty is to faction what air is to fire, an aliment without which it instantly expires. But it could not be less folly to abolish liberty, which is essential to political life, because it nourishes faction, than it would be to wish the annihilation of air, which is essential to animal life, because it imparts to fire its destructive agency.",
+   "role": "claim",
+   "label": "Abolishing liberty is folly",
+   "evidence": "it could not be less folly to abolish liberty, which is essential to political life, because it nourishes faction",
+   "lanes": {
+    "causes": {
+     "weight": "major",
+     "quote": "It could never be more truly said than of the first remedy, that it was worse than the disease"
+    },
+    "liberty": {
+     "weight": "major",
+     "quote": "Liberty is to faction what air is to fire, an aliment without which it instantly expires"
+    }
+   }
+  },
+  {
+   "id": "P6",
+   "kind": "paragraph",
+   "section": "S2",
+   "text": "The second expedient is as impracticable as the first would be unwise. As long as the reason of man continues fallible, and he is at liberty to exercise it, different opinions will be formed. As long as the connection subsists between his reason and his self-love, his opinions and his passions will have a reciprocal influence on each other; and the former will be objects to which the latter will attach themselves. The diversity in the faculties of men, from which the rights of property originate, is not less an insuperable obstacle to a uniformity of interests. The protection of these faculties is the first object of government. From the protection of different and unequal faculties of acquiring property, the possession of different degrees and kinds of property immediately results; and from the influence of these on the sentiments and views of the respective proprietors, ensues a division of the society into different interests and parties.",
+   "role": "claim",
+   "label": "Uniformity is impracticable",
+   "evidence": "The second expedient is as impracticable as the first would be unwise.",
+   "lanes": {
+    "causes": {
+     "weight": "major",
+     "quote": "different opinions will be formed"
+    },
+    "liberty": {
+     "weight": "minor",
+     "quote": "he is at liberty to exercise it"
+    },
+    "property": {
+     "weight": "major",
+     "quote": "The diversity in the faculties of men, from which the rights of property originate, is not less an insuperable obstacle to a uniformity of interests"
+    }
+   }
+  },
+  {
+   "id": "P7",
+   "kind": "paragraph",
+   "section": "S2",
+   "text": "The latent causes of faction are thus sown in the nature of man; and we see them everywhere brought into different degrees of activity, according to the different circumstances of civil society. A zeal for different opinions concerning religion, concerning government, and many other points, as well of speculation as of practice; an attachment to different leaders ambitiously contending for pre-eminence and power; or to persons of other descriptions whose fortunes have been interesting to the human passions, have, in turn, divided mankind into parties, inflamed them with mutual animosity, and rendered them much more disposed to vex and oppress each other than to co-operate for their common good. So strong is this propensity of mankind to fall into mutual animosities, that where no substantial occasion presents itself, the most frivolous and fanciful distinctions have been sufficient to kindle their unfriendly passions and excite their most violent conflicts. But the most common and durable source of factions has been the various and unequal distribution of property. Those who hold and those who are without property have ever formed distinct interests in society. Those who are creditors, and those who are debtors, fall under a like discrimination. A landed interest, a manufacturing interest, a mercantile interest, a moneyed interest, with many lesser interests, grow up of necessity in civilized nations, and divide them into different classes, actuated by different sentiments and views. The regulation of these various and interfering interests forms the principal task of modern legislation, and involves the spirit of party and faction in the necessary and ordinary operations of the government.",
+   "role": "claim",
+   "label": "Causes sown in human nature",
+   "evidence": "The latent causes of faction are thus sown in the nature of man",
+   "lanes": {
+    "causes": {
+     "weight": "major",
+     "quote": "the most frivolous and fanciful distinctions have been sufficient to kindle their unfriendly passions"
+    },
+    "property": {
+     "weight": "major",
+     "quote": "the most common and durable source of factions has been the various and unequal distribution of property"
+    }
+   }
+  },
+  {
+   "id": "P8",
+   "kind": "paragraph",
+   "section": "S2",
+   "text": "No man is allowed to be a judge in his own cause, because his interest would certainly bias his judgment, and, not improbably, corrupt his integrity. With equal, nay with greater reason, a body of men are unfit to be both judges and parties at the same time; yet what are many of the most important acts of legislation, but so many judicial determinations, not indeed concerning the rights of single persons, but concerning the rights of large bodies of citizens? And what are the different classes of legislators but advocates and parties to the causes which they determine? Is a law proposed concerning private debts? It is a question to which the creditors are parties on one side and the debtors on the other. Justice ought to hold the balance between them. Yet the parties are, and must be, themselves the judges; and the most numerous party, or, in other words, the most powerful faction must be expected to prevail. Shall domestic manufactures be encouraged, and in what degree, by restrictions on foreign manufactures? are questions which would be differently decided by the landed and the manufacturing classes, and probably by neither with a sole regard to justice and the public good. The apportionment of taxes on the various descriptions of property is an act which seems to require the most exact impartiality; yet there is, perhaps, no legislative act in which greater opportunity and temptation are given to a predominant party to trample on the rules of justice. Every shilling with which they overburden the inferior number, is a shilling saved to their own pockets.",
+   "role": "claim",
+   "label": "Legislators judge own causes",
+   "evidence": "And what are the different classes of legislators but advocates and parties to the causes which they determine?",
+   "lanes": {
+    "causes": {
+     "weight": "major",
+     "quote": "Yet the parties are, and must be, themselves the judges"
+    },
+    "majority": {
+     "weight": "minor",
+     "quote": "the most numerous party, or, in other words, the most powerful faction must be expected to prevail"
+    },
+    "property": {
+     "weight": "minor",
+     "quote": "The apportionment of taxes on the various descriptions of property"
+    }
+   }
+  },
+  {
+   "id": "P9",
+   "kind": "paragraph",
+   "section": "S2",
+   "text": "It is in vain to say that enlightened statesmen will be able to adjust these clashing interests, and render them all subservient to the public good. Enlightened statesmen will not always be at the helm. Nor, in many cases, can such an adjustment be made at all without taking into view indirect and remote considerations, which will rarely prevail over the immediate interest which one party may find in disregarding the rights of another or the good of the whole.",
+   "role": "counter",
+   "label": "Wise statesmen won't suffice",
+   "evidence": "Enlightened statesmen will not always be at the helm.",
+   "lanes": {
+    "causes": {
+     "weight": "major",
+     "quote": "It is in vain to say that enlightened statesmen will be able to adjust these clashing interests"
+    }
+   }
+  },
+  {
+   "id": "P10",
+   "kind": "paragraph",
+   "section": "S2",
+   "text": "The inference to which we are brought is, that the CAUSES of faction cannot be removed, and that relief is only to be sought in the means of controlling its EFFECTS.",
+   "role": "implication",
+   "label": "Causes stay; control effects",
+   "evidence": "The inference to which we are brought is, that the CAUSES of faction cannot be removed",
+   "lanes": {
+    "causes": {
+     "weight": "major",
+     "quote": "the CAUSES of faction cannot be removed"
+    },
+    "majority": {
+     "weight": "minor",
+     "quote": "relief is only to be sought in the means of controlling its EFFECTS"
+    }
+   }
+  },
+  {
+   "id": "P11",
+   "kind": "paragraph",
+   "section": "S3",
+   "text": "If a faction consists of less than a majority, relief is supplied by the republican principle, which enables the majority to defeat its sinister views by regular vote. It may clog the administration, it may convulse the society; but it will be unable to execute and mask its violence under the forms of the Constitution. When a majority is included in a faction, the form of popular government, on the other hand, enables it to sacrifice to its ruling passion or interest both the public good and the rights of other citizens. To secure the public good and private rights against the danger of such a faction, and at the same time to preserve the spirit and the form of popular government, is then the great object to which our inquiries are directed. Let me add that it is the great desideratum by which this form of government can be rescued from the opprobrium under which it has so long labored, and be recommended to the esteem and adoption of mankind.",
+   "role": "problem",
+   "label": "The danger: majority faction",
+   "evidence": "When a majority is included in a faction, the form of popular government, on the other hand, enables it to sacrifice to its ruling passion or interest both the public good and the rights of other citizens.",
+   "lanes": {
+    "majority": {
+     "weight": "major",
+     "quote": "To secure the public good and private rights against the danger of such a faction, and at the same time to preserve the spirit and the form of popular government"
+    }
+   }
+  },
+  {
+   "id": "P12",
+   "kind": "paragraph",
+   "section": "S3",
+   "text": "By what means is this object attainable? Evidently by one of two only. Either the existence of the same passion or interest in a majority at the same time must be prevented, or the majority, having such coexistent passion or interest, must be rendered, by their number and local situation, unable to concert and carry into effect schemes of oppression. If the impulse and the opportunity be suffered to coincide, we well know that neither moral nor religious motives can be relied on as an adequate control. They are not found to be such on the injustice and violence of individuals, and lose their efficacy in proportion to the number combined together, that is, in proportion as their efficacy becomes needful.",
+   "role": "framework",
+   "label": "Two means against a majority",
+   "evidence": "Either the existence of the same passion or interest in a majority at the same time must be prevented, or the majority, having such coexistent passion or interest, must be rendered, by their number and local situation, unable to concert and carry into effect schemes of oppression.",
+   "lanes": {
+    "majority": {
+     "weight": "major",
+     "quote": "By what means is this object attainable? Evidently by one of two only."
+    },
+    "extent": {
+     "weight": "minor",
+     "quote": "by their number and local situation"
+    }
+   }
+  },
+  {
+   "id": "P13",
+   "kind": "paragraph",
+   "section": "S3",
+   "text": "From this view of the subject it may be concluded that a pure democracy, by which I mean a society consisting of a small number of citizens, who assemble and administer the government in person, can admit of no cure for the mischiefs of faction. A common passion or interest will, in almost every case, be felt by a majority of the whole; a communication and concert result from the form of government itself; and there is nothing to check the inducements to sacrifice the weaker party or an obnoxious individual. Hence it is that such democracies have ever been spectacles of turbulence and contention; have ever been found incompatible with personal security or the rights of property; and have in general been as short in their lives as they have been violent in their deaths. Theoretic politicians, who have patronized this species of government, have erroneously supposed that by reducing mankind to a perfect equality in their political rights, they would, at the same time, be perfectly equalized and assimilated in their possessions, their opinions, and their passions.",
+   "role": "implication",
+   "label": "Pure democracy has no cure",
+   "evidence": "a pure democracy, by which I mean a society consisting of a small number of citizens, who assemble and administer the government in person, can admit of no cure for the mischiefs of faction",
+   "lanes": {
+    "majority": {
+     "weight": "major",
+     "quote": "A common passion or interest will, in almost every case, be felt by a majority of the whole"
+    },
+    "property": {
+     "weight": "minor",
+     "quote": "incompatible with personal security or the rights of property"
+    },
+    "extent": {
+     "weight": "minor",
+     "quote": "a society consisting of a small number of citizens"
+    }
+   }
+  },
+  {
+   "id": "P14",
+   "kind": "paragraph",
+   "section": "S4",
+   "text": "A republic, by which I mean a government in which the scheme of representation takes place, opens a different prospect, and promises the cure for which we are seeking. Let us examine the points in which it varies from pure democracy, and we shall comprehend both the nature of the cure and the efficacy which it must derive from the Union.",
+   "role": "thesis",
+   "label": "A republic promises the cure",
+   "evidence": "A republic, by which I mean a government in which the scheme of representation takes place, opens a different prospect, and promises the cure for which we are seeking.",
+   "lanes": {
+    "majority": {
+     "weight": "major",
+     "quote": "promises the cure for which we are seeking"
+    },
+    "repr": {
+     "weight": "minor",
+     "quote": "a government in which the scheme of representation takes place"
+    },
+    "extent": {
+     "weight": "minor",
+     "quote": "the efficacy which it must derive from the Union"
+    }
+   }
+  },
+  {
+   "id": "P15",
+   "kind": "paragraph",
+   "section": "S4",
+   "text": "The two great points of difference between a democracy and a republic are: first, the delegation of the government, in the latter, to a small number of citizens elected by the rest; secondly, the greater number of citizens, and greater sphere of country, over which the latter may be extended.",
+   "role": "framework",
+   "label": "Delegation, larger sphere",
+   "evidence": "first, the delegation of the government, in the latter, to a small number of citizens elected by the rest; secondly, the greater number of citizens, and greater sphere of country, over which the latter may be extended",
+   "lanes": {
+    "repr": {
+     "weight": "major",
+     "quote": "the delegation of the government, in the latter, to a small number of citizens elected by the rest"
+    },
+    "extent": {
+     "weight": "major",
+     "quote": "the greater number of citizens, and greater sphere of country, over which the latter may be extended"
+    }
+   }
+  },
+  {
+   "id": "P16",
+   "kind": "paragraph",
+   "section": "S4",
+   "text": "The effect of the first difference is, on the one hand, to refine and enlarge the public views, by passing them through the medium of a chosen body of citizens, whose wisdom may best discern the true interest of their country, and whose patriotism and love of justice will be least likely to sacrifice it to temporary or partial considerations. Under such a regulation, it may well happen that the public voice, pronounced by the representatives of the people, will be more consonant to the public good than if pronounced by the people themselves, convened for the purpose. On the other hand, the effect may be inverted. Men of factious tempers, of local prejudices, or of sinister designs, may, by intrigue, by corruption, or by other means, first obtain the suffrages, and then betray the interests, of the people. The question resulting is, whether small or extensive republics are more favorable to the election of proper guardians of the public weal; and it is clearly decided in favor of the latter by two obvious considerations:",
+   "role": "claim",
+   "label": "May refine views, or betray",
+   "evidence": "it may well happen that the public voice, pronounced by the representatives of the people, will be more consonant to the public good than if pronounced by the people themselves",
+   "lanes": {
+    "repr": {
+     "weight": "major",
+     "quote": "to refine and enlarge the public views, by passing them through the medium of a chosen body of citizens"
+    },
+    "extent": {
+     "weight": "minor",
+     "quote": "whether small or extensive republics are more favorable to the election of proper guardians of the public weal"
+    }
+   }
+  },
+  {
+   "id": "P17",
+   "kind": "paragraph",
+   "section": "S4",
+   "text": "In the first place, it is to be remarked that, however small the republic may be, the representatives must be raised to a certain number, in order to guard against the cabals of a few; and that, however large it may be, they must be limited to a certain number, in order to guard against the confusion of a multitude. Hence, the number of representatives in the two cases not being in proportion to that of the two constituents, and being proportionally greater in the small republic, it follows that, if the proportion of fit characters be not less in the large than in the small republic, the former will present a greater option, and consequently a greater probability of a fit choice.",
+   "role": "claim",
+   "label": "Greater odds of a fit choice",
+   "evidence": "if the proportion of fit characters be not less in the large than in the small republic, the former will present a greater option, and consequently a greater probability of a fit choice",
+   "lanes": {
+    "repr": {
+     "weight": "major",
+     "quote": "the representatives must be raised to a certain number, in order to guard against the cabals of a few"
+    },
+    "extent": {
+     "weight": "minor",
+     "quote": "however large it may be, they must be limited to a certain number"
+    }
+   }
+  },
+  {
+   "id": "P18",
+   "kind": "paragraph",
+   "section": "S4",
+   "text": "In the next place, as each representative will be chosen by a greater number of citizens in the large than in the small republic, it will be more difficult for unworthy candidates to practice with success the vicious arts by which elections are too often carried; and the suffrages of the people being more free, will be more likely to centre in men who possess the most attractive merit and the most diffusive and established characters.",
+   "role": "claim",
+   "label": "Vicious arts harder to use",
+   "evidence": "it will be more difficult for unworthy candidates to practice with success the vicious arts by which elections are too often carried",
+   "lanes": {
+    "repr": {
+     "weight": "major",
+     "quote": "will be more likely to centre in men who possess the most attractive merit and the most diffusive and established characters"
+    },
+    "extent": {
+     "weight": "minor",
+     "quote": "chosen by a greater number of citizens in the large than in the small republic"
+    }
+   }
+  },
+  {
+   "id": "P19",
+   "kind": "paragraph",
+   "section": "S4",
+   "text": "It must be confessed that in this, as in most other cases, there is a mean, on both sides of which inconveniences will be found to lie. By enlarging too much the number of electors, you render the representatives too little acquainted with all their local circumstances and lesser interests; as by reducing it too much, you render him unduly attached to these, and too little fit to comprehend and pursue great and national objects. The federal Constitution forms a happy combination in this respect; the great and aggregate interests being referred to the national, the local and particular to the State legislatures.",
+   "role": "counter",
+   "label": "Size has limits; federal mix",
+   "evidence": "there is a mean, on both sides of which inconveniences will be found to lie",
+   "lanes": {
+    "repr": {
+     "weight": "major",
+     "quote": "By enlarging too much the number of electors, you render the representatives too little acquainted with all their local circumstances and lesser interests"
+    }
+   }
+  },
+  {
+   "id": "P20",
+   "kind": "paragraph",
+   "section": "S5",
+   "text": "The other point of difference is, the greater number of citizens and extent of territory which may be brought within the compass of republican than of democratic government; and it is this circumstance principally which renders factious combinations less to be dreaded in the former than in the latter. The smaller the society, the fewer probably will be the distinct parties and interests composing it; the fewer the distinct parties and interests, the more frequently will a majority be found of the same party; and the smaller the number of individuals composing a majority, and the smaller the compass within which they are placed, the more easily will they concert and execute their plans of oppression. Extend the sphere, and you take in a greater variety of parties and interests; you make it less probable that a majority of the whole will have a common motive to invade the rights of other citizens; or if such a common motive exists, it will be more difficult for all who feel it to discover their own strength, and to act in unison with each other. Besides other impediments, it may be remarked that, where there is a consciousness of unjust or dishonorable purposes, communication is always checked by distrust in proportion to the number whose concurrence is necessary.",
+   "role": "claim",
+   "label": "More parties, safer rights",
+   "evidence": "you make it less probable that a majority of the whole will have a common motive to invade the rights of other citizens",
+   "lanes": {
+    "majority": {
+     "weight": "major",
+     "quote": "it will be more difficult for all who feel it to discover their own strength, and to act in unison with each other"
+    },
+    "extent": {
+     "weight": "major",
+     "quote": "Extend the sphere, and you take in a greater variety of parties and interests"
+    }
+   }
+  },
+  {
+   "id": "P21",
+   "kind": "paragraph",
+   "section": "S5",
+   "text": "Hence, it clearly appears, that the same advantage which a republic has over a democracy, in controlling the effects of faction, is enjoyed by a large over a small republic,--is enjoyed by the Union over the States composing it. Does the advantage consist in the substitution of representatives whose enlightened views and virtuous sentiments render them superior to local prejudices and schemes of injustice? It will not be denied that the representation of the Union will be most likely to possess these requisite endowments. Does it consist in the greater security afforded by a greater variety of parties, against the event of any one party being able to outnumber and oppress the rest? In an equal degree does the increased variety of parties comprised within the Union, increase this security. Does it, in fine, consist in the greater obstacles opposed to the concert and accomplishment of the secret wishes of an unjust and interested majority? Here, again, the extent of the Union gives it the most palpable advantage.",
+   "role": "synthesis",
+   "label": "Union's edge over the States",
+   "evidence": "is enjoyed by the Union over the States composing it",
+   "lanes": {
+    "majority": {
+     "weight": "major",
+     "quote": "the greater obstacles opposed to the concert and accomplishment of the secret wishes of an unjust and interested majority"
+    },
+    "repr": {
+     "weight": "major",
+     "quote": "Does the advantage consist in the substitution of representatives whose enlightened views and virtuous sentiments render them superior to local prejudices and schemes of injustice?"
+    },
+    "extent": {
+     "weight": "major",
+     "quote": "Here, again, the extent of the Union gives it the most palpable advantage."
+    }
+   }
+  },
+  {
+   "id": "P22",
+   "kind": "paragraph",
+   "section": "S5",
+   "text": "The influence of factious leaders may kindle a flame within their particular States, but will be unable to spread a general conflagration through the other States. A religious sect may degenerate into a political faction in a part of the Confederacy; but the variety of sects dispersed over the entire face of it must secure the national councils against any danger from that source. A rage for paper money, for an abolition of debts, for an equal division of property, or for any other improper or wicked project, will be less apt to pervade the whole body of the Union than a particular member of it; in the same proportion as such a malady is more likely to taint a particular county or district, than an entire State.",
+   "role": "example",
+   "label": "Local flames won't spread",
+   "evidence": "The influence of factious leaders may kindle a flame within their particular States, but will be unable to spread a general conflagration through the other States.",
+   "lanes": {
+    "property": {
+     "weight": "minor",
+     "quote": "for an equal division of property"
+    },
+    "extent": {
+     "weight": "major",
+     "quote": "the variety of sects dispersed over the entire face of it must secure the national councils against any danger from that source"
+    }
+   }
+  },
+  {
+   "id": "P23",
+   "kind": "paragraph",
+   "section": "S5",
+   "text": "In the extent and proper structure of the Union, therefore, we behold a republican remedy for the diseases most incident to republican government. And according to the degree of pleasure and pride we feel in being republicans, ought to be our zeal in cherishing the spirit and supporting the character of Federalists.",
+   "role": "conclusion",
+   "label": "The Union: republican remedy",
+   "evidence": "In the extent and proper structure of the Union, therefore, we behold a republican remedy for the diseases most incident to republican government.",
+   "lanes": {
+    "majority": {
+     "weight": "major",
+     "quote": "a republican remedy for the diseases most incident to republican government"
+    },
+    "extent": {
+     "weight": "major",
+     "quote": "In the extent and proper structure of the Union"
+    }
+   }
+  }
+ ],
+ "cases": [
+  {
+   "name": "Disease and cure",
+   "at": [
+    "P1",
+    "P3",
+    "P5",
+    "P13",
+    "P14",
+    "P22",
+    "P23"
+   ],
+   "note": "Faction is a disease throughout: popular governments perish of it (P1), and the Union is its republican remedy (P23)."
+  },
+  {
+   "name": "Fire",
+   "at": [
+    "P5",
+    "P7",
+    "P22"
+   ],
+   "note": "Faction as fire: liberty is the air it needs (P5), the slightest distinction kindles men's passions (P7), and in the Union a State's flame cannot spread (P22)."
+  },
+  {
+   "name": "Creditors and debtors",
+   "at": [
+    "P7",
+    "P8",
+    "P22"
+   ],
+   "note": "Debt divides creditors from debtors (P7), makes both judges of their own law (P8) and returns as a rage to abolish debts (P22)."
+  },
+  {
+   "name": "Religion",
+   "at": [
+    "P7",
+    "P12",
+    "P22"
+   ],
+   "note": "Religious zeal divides men (P7), religious motives fail to restrain a majority (P12), and a variety of sects guards the national councils (P22)."
+  },
+  {
+   "name": "Pure democracy",
+   "at": [
+    "P13",
+    "P14",
+    "P15",
+    "P16",
+    "P20",
+    "P21"
+   ],
+   "note": "Pure democracy is the foil: it admits no cure (P13), and the republic's delegation (P14 to P16) and larger sphere (P20, P21) are measured against it."
+  },
+  {
+   "name": "Enlightened statesmen",
+   "at": [
+    "P9",
+    "P16",
+    "P21"
+   ],
+   "note": "P9 doubts that enlightened statesmen will always be at the helm; P16 and P21 expect a large republic's representatives to be likelier to have such views."
+  }
+ ],
+ "gaps": [
+  {
+   "at": [
+    "P12",
+    "P16",
+    "P21"
+   ],
+   "note": "P12 says a majority faction can be checked by one of two means only; P21 credits the Union with three advantages, and the first, better representatives, is tied to neither means.",
+   "direction": "Tie the case for representatives in P16 to P19 to one of P12's two means, or let P12 allow for a third, so that the reader can match each of P21's advantages to a means."
+  }
+ ],
+ "version": 1,
+ "generated_at": "2026-10-18T16:26:20Z",
+ "computed": {
+  "runs": {
+   "causes": {
+    "span": [
+     "P3",
+     "P10"
+    ],
+    "solid": [
+     [
+      "P3",
+      "P4",
+      "P5",
+      "P6",
+      "P7",
+      "P8",
+      "P9",
+      "P10"
+     ]
+    ]
+   },
+   "majority": {
+    "span": [
+     "P1",
+     "P23"
+    ],
+    "solid": [
+     [
+      "P1",
+      "P2",
+      "P3"
+     ],
+     [
+      "P10",
+      "P11",
+      "P12",
+      "P13",
+      "P14"
+     ],
+     [
+      "P20",
+      "P21"
+     ]
+    ]
+   },
+   "liberty": {
+    "span": [
+     "P1",
+     "P6"
+    ],
+    "solid": [
+     [
+      "P4",
+      "P5",
+      "P6"
+     ]
+    ]
+   },
+   "property": {
+    "span": [
+     "P6",
+     "P22"
+    ],
+    "solid": [
+     [
+      "P6",
+      "P7",
+      "P8"
+     ]
+    ]
+   },
+   "repr": {
+    "span": [
+     "P14",
+     "P21"
+    ],
+    "solid": [
+     [
+      "P14",
+      "P15",
+      "P16",
+      "P17",
+      "P18",
+      "P19"
+     ]
+    ]
+   },
+   "extent": {
+    "span": [
+     "P1",
+     "P23"
+    ],
+    "solid": [
+     [
+      "P12",
+      "P13",
+      "P14",
+      "P15",
+      "P16",
+      "P17",
+      "P18"
+     ],
+     [
+      "P20",
+      "P21",
+      "P22",
+      "P23"
+     ]
+    ]
+   }
+  },
+  "observations": [
+   {
+    "type": "quiet",
+    "lane": "property",
+    "from": "P13",
+    "to": "P22",
+    "length": 8
+   },
+   {
+    "type": "quiet",
+    "lane": "extent",
+    "from": "P1",
+    "to": "P12",
+    "length": 10
+   },
+   {
+    "type": "unresolved",
+    "lane": "causes"
+   },
+   {
+    "type": "unresolved",
+    "lane": "liberty"
+   }
+  ]
+ }
+}

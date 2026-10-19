@@ -1,0 +1,6 @@
+{
+  "name": "writing-throughmap",
+  "owner": { "name": "Lucas Jang" },
+  "description": "Map the flow of an essay or report: paragraph roles, threads, recurring examples and gaps, as one offline HTML infographic.",
+  "plugins": [ { "name": "writing-throughmap", "source": "./" } ]
+}
