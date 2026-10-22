@@ -15,15 +15,16 @@ from unittest import mock
 import tm_build
 from tests import SCRIPTS_DIR
 from tests.fixtures import (
-    STUB_TEMPLATE, STUB_TEMPLATE_PATH, built_sample, lanes_marked, n_paragraphs, quiet, run_main,
-    run_main_streams, sample_analysis, sample_source,
-    sample_with_unthreaded_P3_and_own_missing_from_last_section, table_item, tmp_dir, tmp_path,
-    write_draft,
+    REVISION_CHANGES, STUB_TEMPLATE, STUB_TEMPLATE_PATH, built_sample, built_version, lanes_marked,
+    n_paragraphs, para, quiet, revision, rewrite_draft, run_main, run_main_streams, sample_analysis,
+    sample_source, sample_with_unthreaded_P3_and_own_missing_from_last_section, table_item,
+    tmp_dir, tmp_path, two_builds, version_of, write_draft,
 )
 from tm_build import (
     BuildError, build, compute_observations, compute_runs, list_versions, next_version,
     render_html, terminal_summary,
 )
+from tm_compare import CompareError
 
 DOT = "\N{MIDDLE DOT}"
 ARROW = "\N{RIGHTWARDS ARROW}"
@@ -290,6 +291,14 @@ class TerminalSummaryTests(unittest.TestCase):
 
     def gaps_line(self):
         return terminal_summary(self.data, "/x/index.html").splitlines()[2]
+
+    def test_a_changes_line_goes_before_the_open_line(self):
+        lines = terminal_summary(built_sample(), "/x/index.html",
+                                 changes="changes from v1: none").splitlines()
+        self.assertEqual(len(lines), 5)
+        self.assertTrue(lines[2].startswith("gaps: "))
+        self.assertEqual(lines[3], "changes from v1: none")
+        self.assertEqual(lines[4], "open: /x/index.html")
 
     def test_the_flow_names_each_section_and_the_questions_it_answers(self):
         flow = terminal_summary(built_sample(), "/x/index.html").splitlines()[1]
@@ -561,9 +570,12 @@ class OtherFilesTests(unittest.TestCase):
             "(remove any you created)"])
 
     def test_a_clean_folder_prints_no_such_line(self):
-        for _ in range(2):                         # the second build finds v1.json and index.html
-            lines = build(self.draft, STUB_TEMPLATE_PATH)["summary"].splitlines()
-            self.assertEqual(len(lines), 4, lines)
+        # The second build finds v1.json and index.html, which are the map's own, and compares.
+        first = build(self.draft, STUB_TEMPLATE_PATH)["summary"].splitlines()
+        second = build(self.draft, STUB_TEMPLATE_PATH)["summary"].splitlines()
+        self.assertEqual((len(first), len(second)), (4, 5), (first, second))
+        self.assertEqual(second[3], "changes from v1: none")
+        for lines in (first, second):
             self.assertFalse([line for line in lines if line.startswith("also in")], lines)
 
     def test_subfolders_and_the_maps_own_files_are_never_named(self):
@@ -576,7 +588,8 @@ class OtherFilesTests(unittest.TestCase):
         shutil.copyfile(self.draft, renamed)
         result = build(renamed, STUB_TEMPLATE_PATH)
         self.assertEqual(result["version"], 2)
-        self.assertEqual(len(result["summary"].splitlines()), 4, result["summary"])
+        self.assertFalse([line for line in result["summary"].splitlines()
+                          if line.startswith("also in")], result["summary"])
 
     def test_files_the_system_leaves_are_never_named(self):
         # Finder and Explorer write these into a folder they show; no agent wrote them.
@@ -585,7 +598,7 @@ class OtherFilesTests(unittest.TestCase):
         self.assertEqual(len(build(self.draft, STUB_TEMPLATE_PATH)["summary"].splitlines()), 4)
         self.put("assemble.py")
         summary = build(self.draft, STUB_TEMPLATE_PATH)["summary"]
-        self.assertEqual(summary.splitlines()[4:], [
+        self.assertEqual([line for line in summary.splitlines() if line.startswith("also in")], [
             f"also in {self.folder}: assemble.py (remove it if you created it)"])
 
     def test_a_failed_build_names_nothing(self):
@@ -752,6 +765,152 @@ class VersionsCommandTests(unittest.TestCase):
                 code, out, err = run_main_streams(argv)
                 self.assertEqual((code, out), (2, ""))
                 self.assertTrue(err.startswith(("usage:", "error:")), err)
+
+
+class CompareBuildTests(unittest.TestCase):
+    def test_a_first_build_has_no_comparison(self):
+        result = build(write_draft(*revision()[0]), STUB_TEMPLATE_PATH)
+        self.assertNotIn("compare", json.loads(read_text(result["json_path"])))
+        self.assertEqual(len(result["summary"].splitlines()), 4)
+
+    def test_the_second_build_compares_with_the_first(self):
+        result = two_builds(*revision())
+        data = json.loads(read_text(result["json_path"]))
+        first = json.loads(read_text(beside(result["json_path"], "v1.json")))
+        self.assertEqual(set(data["compare"]), {
+            "against", "before", "versions", "pairs", "splits", "merges", "added", "removed",
+            "marks", "lanes", "quiet_closed", "quiet_opened", "gaps_closed"})
+        self.assertEqual((data["compare"]["against"], data["compare"]["before"]), (1, first))
+        self.assertEqual([v["version"] for v in data["compare"]["versions"]], [1, 2])
+        self.assertEqual(data["compare"]["versions"][1]["generated_at"], data["generated_at"])
+
+    def test_the_summary_says_what_changed_before_the_open_line(self):
+        lines = two_builds(*revision())["summary"].splitlines()
+        self.assertEqual(len(lines), 5)
+        self.assertEqual(lines[3], REVISION_CHANGES)
+        self.assertTrue(lines[4].startswith("open: "))
+
+    def test_a_third_build_compares_with_the_second_and_holds_no_nested_copy(self):
+        draft = beside(two_builds(*revision())["json_path"], "draft.json")
+        third = build(draft, STUB_TEMPLATE_PATH)
+        data = json.loads(read_text(third["json_path"]))
+        self.assertEqual(data["compare"]["against"], 2)
+        self.assertNotIn("compare", data["compare"]["before"])
+        self.assertIn("changes from v2: none", third["summary"].splitlines())
+
+    def test_compare_with_names_an_earlier_version(self):
+        draft = beside(two_builds(*revision())["json_path"], "draft.json")
+        self.assertIn(REVISION_CHANGES, build(draft, STUB_TEMPLATE_PATH, compare_with=1)["summary"])
+
+    def test_a_version_that_is_not_saved_is_an_error_and_nothing_is_written(self):
+        folder = os.path.dirname(two_builds(*revision())["json_path"])
+        files = sorted(os.listdir(folder))
+        with self.assertRaisesRegex(CompareError, r"^no saved version v5 in .*; the saved versions are v1, v2$"):
+            build(os.path.join(folder, "draft.json"), STUB_TEMPLATE_PATH, compare_with=5)
+        self.assertEqual(sorted(os.listdir(folder)), files)
+        with self.assertRaisesRegex(CompareError, "it holds no saved version yet$"):
+            build(write_draft(*revision()[0]), STUB_TEMPLATE_PATH, compare_with=1)
+
+    def test_an_unreadable_latest_version_builds_without_a_comparison(self):     # Review Focus 5
+        draft = write_draft(*revision()[0])
+        Path(build(draft, STUB_TEMPLATE_PATH)["json_path"]).write_text("{not json", "utf-8")
+        result = build(draft, STUB_TEMPLATE_PATH)
+        self.assertNotIn("compare", json.loads(read_text(result["json_path"])))
+        self.assertEqual(result["summary"].splitlines()[3],
+                         "changes from v1: not compared (v1.json cannot be read: it is not valid JSON)")
+
+    def test_compare_names_a_usable_version_while_the_latest_is_not(self):
+        # The Troubleshooting row for "not compared" sends the agent here: the latest saved version
+        # cannot be read, and --compare names an earlier one that can.
+        draft = beside(two_builds(*revision())["json_path"], "draft.json")
+        Path(beside(draft, "v2.json")).write_text("{not json", "utf-8")
+        code, out, err = run_main_streams(["build", draft, "--compare", "v1"])
+        self.assertEqual((code, err), (0, ""))
+        self.assertIn(REVISION_CHANGES, out.splitlines())                      # "changes from v1: ..."
+        data = json.loads(read_text(beside(draft, "v3.json")))
+        self.assertEqual((data["compare"]["against"], data["compare"]["before"]["version"]), (1, 1))
+        self.assertEqual(read_text(beside(draft, "v2.json")), "{not json")      # left as it was
+
+    def test_an_unreadable_named_version_is_an_error(self):                       # Review Focus 5
+        draft = write_draft(*revision()[0])
+        first = build(draft, STUB_TEMPLATE_PATH)
+        page = read_text(first["html_path"])
+        Path(first["json_path"]).write_text("{not json", "utf-8")
+        with self.assertRaisesRegex(CompareError, r"^v1\.json cannot be read: it is not valid JSON$"):
+            build(draft, STUB_TEMPLATE_PATH, compare_with=1)
+        self.assertFalse(os.path.exists(beside(draft, "v2.json")))
+        self.assertEqual(read_text(first["html_path"]), page)
+
+    def test_unrelated_versions_say_added_and_removed(self):                      # Review Focus 4
+        first = version_of([para(1, 2, 3), para(4, 5, 6), para(7, 8, 9)], {"q1": [1]})
+        second = version_of([para(20, 21, 22), para(23, 24, 25), para(26, 27, 28)], {"q1": [1]})
+        self.assertEqual(two_builds(first, second)["summary"].splitlines()[3],
+                         f"changes from v1: 3 added (P1, P2, P3) {DOT} 3 removed (v1 P1, v1 P2, v1 P3)")
+
+    def test_a_compare_left_in_the_draft_is_dropped(self):
+        source, analysis = revision()[0]
+        analysis["compare"] = {"against": 9}
+        result = build(write_draft(source, analysis), STUB_TEMPLATE_PATH)
+        self.assertNotIn("compare", json.loads(read_text(result["json_path"])))
+
+    def test_earlier_versions_are_not_changed(self):
+        first, second = revision()
+        draft = write_draft(*first)
+        saved = Path(build(draft, STUB_TEMPLATE_PATH)["json_path"]).read_bytes()
+        rewrite_draft(draft, *second)
+        build(draft, STUB_TEMPLATE_PATH)
+        self.assertEqual(Path(beside(draft, "v1.json")).read_bytes(), saved)
+
+    def test_the_earlier_computed_fields_are_worked_out_again(self):
+        # A saved version with a stale or hand-edited computed cannot skew the comparison.
+        first, second = revision()
+        draft = write_draft(*first)
+        saved = Path(build(draft, STUB_TEMPLATE_PATH)["json_path"])
+        data = json.loads(read_text(saved))
+        data["computed"] = {"runs": {}, "observations": []}
+        saved.write_text(json.dumps(data), "utf-8")
+        rewrite_draft(draft, *second)
+        compare = json.loads(read_text(build(draft, STUB_TEMPLATE_PATH)["json_path"]))["compare"]
+        self.assertEqual(compare["before"]["computed"], built_version(first[1], 1)["computed"])
+        self.assertEqual(len(compare["quiet_closed"]), 1)
+
+
+class CompareCommandTests(unittest.TestCase):
+    def setUp(self):
+        self.draft = beside(two_builds(*revision())["json_path"], "draft.json")
+
+    def test_compare_takes_v_k_or_k(self):
+        for value in ("v1", "1"):
+            code, out = run_main(["build", self.draft, "--compare", value])
+            self.assertEqual(code, 0)
+            self.assertIn(REVISION_CHANGES, out.splitlines())
+
+    def test_a_malformed_compare_value_is_a_usage_error(self):
+        code, out, err = run_main_streams(["build", self.draft, "--compare", "x"])
+        self.assertEqual((code, out), (2, ""))
+        self.assertTrue(err.startswith("usage:"), err)
+
+    def test_a_compare_that_names_no_saved_version_exits_1(self):
+        code, out, err = run_main_streams(["build", self.draft, "--compare", "v9"])
+        self.assertEqual((code, out), (1, ""))
+        self.assertTrue(err.startswith("error: no saved version v9"), err)
+
+    def test_help_names_the_compare_option(self):
+        self.assertIn("--compare", run_main(["build", "--help"])[1])
+
+    def test_a_capital_v_is_taken_too(self):
+        code, out = run_main(["build", self.draft, "--compare", "V1"])
+        self.assertEqual(code, 0)
+        self.assertIn(REVISION_CHANGES, out.splitlines())
+
+    def test_a_value_that_is_no_version_number_is_a_usage_error_and_writes_nothing(self):
+        files = sorted(os.listdir(folder_of(self.draft)))
+        for value in ("", "v", "0", "v0", "01", "v01", "1.5", "-1", "v 1", " 1", "v1234567890"):
+            with self.subTest(value=value):
+                code, out, err = run_main_streams(["build", self.draft, "--compare", value])
+                self.assertEqual((code, out), (2, ""))
+                self.assertTrue(err.startswith("usage:"), err)
+        self.assertEqual(sorted(os.listdir(folder_of(self.draft))), files)
 
 
 class BuildScriptTests(unittest.TestCase):

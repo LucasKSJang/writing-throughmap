@@ -3,7 +3,7 @@
 build() checks the analysis (draft.json), adds what the page and the summary need and saves the
 result as vN.json beside it. It then writes index.html, which is the template with that data
 embedded, and returns the terminal summary. An earlier version is never overwritten, and nothing at
-all is written when check finds errors.
+all is written when check finds errors or a comparison that was asked for cannot be made.
 
 vN.json is the input of the page renderer: the analysis as the agent wrote it, plus
 
@@ -16,6 +16,21 @@ vN.json is the input of the page renderer: the analysis as the agent wrote it, p
 
 The runs and observations are worked out here, from the marks, so that the page and the terminal
 summary show the same things.
+
+From the second build on, the new version is compared with an earlier one: the latest saved
+version, or the one that build() is told to compare with. Then vN.json also holds
+
+    "compare": {"against": K,        the number of the version compared with
+                "before": {...},     vK.json without a compare of its own, and with its computed
+                                     worked out again from its items, so that copies never nest
+                "versions": [{"version", "generated_at", "paragraphs"}, ...],
+                                     every saved version, this one last
+                ...}                 and what tm_compare.compare_versions says of the two
+
+The first build has no compare, so v1.json keeps its v0.1 form, and a compare that an agent left in
+draft.json is dropped. When the latest version cannot be used (see tm_compare.load_version), the
+new one is built without a compare and the summary says so; a version that was asked for and
+cannot be used is an error, and nothing is written.
 """
 
 from __future__ import annotations
@@ -28,6 +43,8 @@ from datetime import datetime, timezone
 from itertools import groupby
 
 from tm_check import check_files, format_report, read_json
+from tm_compare import CompareError, changes_line, compare_versions, load_version, uncompared_line
+from tm_text import one_line
 
 SOURCE_FILE = "source.json"   # written by extract; build and check look for it beside draft.json
 DRAFT_FILE = "draft.json"     # the analysis, as SKILL.md names it
@@ -214,14 +231,9 @@ def _counted(number: int, noun: str) -> str:
     return f"{number} {noun}" if number == 1 else f"{number} {noun}s"
 
 
-def _one_line(text: str) -> str:
-    """Return ``text`` with every run of whitespace, line breaks included, as one space."""
-    return " ".join(str(text).split())
-
-
 def _flow_step(section: dict) -> str:
     """Name a section by its short name and, in brackets, the questions it answers."""
-    short, answers = _one_line(section["short"]), section.get("answers") or []
+    short, answers = one_line(section["short"]), section.get("answers") or []
     return f"{short} ({', '.join(answers)})" if answers else short
 
 
@@ -237,27 +249,33 @@ def _observation_note(observation: dict, labels: dict[str, str]) -> str:
     return f"{', '.join(observation['at'])} is on no thread"
 
 
-def terminal_summary(data: dict, html_path: str) -> str:
-    """Return the four-line summary of built ``data`` that build prints.
+def terminal_summary(data: dict, html_path: str, changes: str | None = None) -> str:
+    """Return the summary of built ``data`` that build prints: four lines, or five with ``changes``.
 
     The gaps line numbers the notes: the agent's own gap notes first, then the observations, in
-    English, and at most 3 in all. ``html_path`` goes on the last line as it is.
+    English, and at most 3 in all. ``changes``, when given, is the line that says what changed
+    from the version compared with (tm_compare.changes_line, or uncompared_line when that could not
+    be done); it goes between the gaps line and the last. ``html_path`` goes on the last line as it
+    is.
     """
     labels = {lane["id"]: lane["label"] for lane in data["lanes"]}
     notes = [gap["note"] for gap in data["gaps"]]
     notes += [_observation_note(observation, labels)
               for observation in data["computed"]["observations"]]
-    numbered = " ".join(f"{marker} {_one_line(note)}"
+    numbered = " ".join(f"{marker} {one_line(note)}"
                         for marker, note in zip(_NOTE_MARKERS, notes))
     paragraphs = _counted(_paragraph_count(data["paragraphs"]), "paragraph")
     threads = _counted(len(data["lanes"]), "thread")
     flow = f" {_ARROW} ".join(_flow_step(section) for section in data["sections"])
-    return "\n".join((
-        f"throughmap {_DOT} {_one_line(data['essay']['title'])} ({paragraphs}, {threads})",
+    lines = [
+        f"throughmap {_DOT} {one_line(data['essay']['title'])} ({paragraphs}, {threads})",
         f"flow: {flow}",
         f"gaps: {numbered or 'none'}",
-        f"open: {html_path}",
-    ))
+    ]
+    if changes is not None:
+        lines.append(changes)
+    lines.append(f"open: {html_path}")
+    return "\n".join(lines)
 
 
 def other_files(out_dir: str, draft_name: str) -> list[str]:
@@ -285,10 +303,45 @@ def other_files_line(out_dir: str, names: list[str]) -> str:
     return f"also in {out_dir}: {', '.join(names)} ({advice})"
 
 
+# --- Comparing with an earlier version ---------------------------------------------------------
+
+
+def _version_to_compare(out_dir: str, saved: list[int], compare_with: int | None) -> int | None:
+    """Return the number of the saved version that the new one is compared with, if any.
+
+    That is ``compare_with``, else the highest of the ``saved`` numbers, else None. Raises
+    CompareError when ``compare_with`` is given and is not among them.
+    """
+    if compare_with is None:
+        return max(saved, default=None)
+    if compare_with not in saved:
+        names = ", ".join(f"v{number}" for number in saved)
+        detail = f"; the saved versions are {names}" if saved else ": it holds no saved version yet"
+        raise CompareError(f"no saved version v{compare_with} in {out_dir}{detail}")
+    return compare_with
+
+
+def _comparison(out_dir: str, against: int, earlier: dict, data: dict) -> dict:
+    """Return what the ``compare`` of ``data`` holds when ``data`` follows the saved ``earlier``.
+
+    ``earlier`` is the saved version number ``against``, as load_version gives it. Nothing is
+    written, and the saved versions are listed before the new file exists.
+    """
+    before = {key: value for key, value in earlier.items() if key != "compare"}
+    before["computed"] = {"runs": compute_runs(before),
+                          "observations": compute_observations(before)}
+    versions = list_versions(out_dir) + [{
+        "version": data["version"], "generated_at": data["generated_at"],
+        "paragraphs": _paragraph_count(data["paragraphs"])}]
+    return {"against": against, "before": before, "versions": versions,
+            **compare_versions(before, data)}
+
+
 # --- Build -------------------------------------------------------------------------------------
 
 
-def build(draft_path: str, template_path: str | None = None) -> dict:
+def build(draft_path: str, template_path: str | None = None,
+          compare_with: int | None = None) -> dict:
     """Check the analysis at ``draft_path``, save it as the next version and write the page.
 
     Writes ``vN.json`` and ``index.html`` in the folder of the draft, and returns
@@ -297,28 +350,52 @@ def build(draft_path: str, template_path: str | None = None) -> dict:
     ``template_path`` names another. When the folder holds other files (see other_files), the
     summary ends with a line that names them; build never deletes them.
 
-    Raises BuildError, with the report check gives, when the analysis has errors; ValueError or
-    OSError when a file is missing or cannot be used, as check does. Everything that can fail comes
-    before the first file is written, and a version file that exists is never overwritten.
+    When the folder already holds a saved version, the new one is compared with the latest, or
+    with the version number ``compare_with`` when that is given: vN.json gets a ``compare`` (the
+    module docstring says what it holds), and the summary a ``changes from vK: ...`` line. When
+    the latest version cannot be used, the new one is built without a ``compare`` and that line
+    says it was not compared. Any ``compare`` in the draft itself is dropped.
+
+    Raises BuildError, with the report check gives, when the analysis has errors; CompareError when
+    ``compare_with`` names a version that is not saved or cannot be used; ValueError or OSError
+    when a file is missing or cannot be used, as check does. Everything that can fail comes before
+    the first file is written, and a version file that exists is never overwritten.
     """
     out_dir = os.path.dirname(os.path.abspath(draft_path))
     report = check_files(draft_path, os.path.join(out_dir, SOURCE_FILE))
     if report["errors"]:
         raise BuildError(format_report(report))
-    analysis = read_json(draft_path)   # the file that check_files has just read
+    # The file that check_files has just read, without any compare an agent left in it.
+    analysis = {key: value for key, value in read_json(draft_path).items() if key != "compare"}
     with open(template_path or DEFAULT_TEMPLATE, encoding="utf-8") as handle:
         template = handle.read()
+
+    against = _version_to_compare(out_dir, _version_numbers(out_dir), compare_with)
+    earlier, unusable = None, None
+    if against is not None:
+        try:
+            earlier = load_version(out_dir, against)
+        except CompareError as error:
+            if compare_with is not None:   # asked for by name: an error, and nothing is written
+                raise
+            unusable = error               # the latest cannot be used: build without a compare
 
     version = next_version(out_dir)
     data = {**analysis, "version": version,
             "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
             "computed": {"runs": compute_runs(analysis),
                          "observations": compute_observations(analysis)}}
+    changes = None
+    if earlier is not None:
+        data["compare"] = _comparison(out_dir, against, earlier, data)
+        changes = changes_line(data)
+    elif unusable is not None:
+        changes = uncompared_line(against, unusable)
     json_path = os.path.join(out_dir, f"v{version}.json")
     html_path = os.path.join(out_dir, PAGE_FILE)
     json_bytes = (json.dumps(data, ensure_ascii=False, indent=1) + "\n").encode("utf-8")
     html_bytes = render_html(data, template).encode("utf-8")
-    summary = terminal_summary(data, html_path)
+    summary = terminal_summary(data, html_path, changes)
     others = other_files(out_dir, os.path.basename(draft_path))
     if others:
         summary += "\n" + other_files_line(out_dir, others)

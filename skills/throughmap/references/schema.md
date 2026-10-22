@@ -104,7 +104,7 @@ Every id named in `first`, `last`, `section`, `question`, `answers` and `at` mus
 
 ### What build adds
 
-`vN.json` is `draft.json` plus `version` (N), `generated_at` (the time, in UTC) and `computed`, which holds each thread's runs and the observations described in `gaps.md`. They are worked out from your marks, so leave them out of `draft.json`.
+`vN.json` is `draft.json` plus `version` (N), `generated_at` (the time, in UTC) and `computed`, which holds each thread's runs and the observations described in `gaps.md`. From the second version on it also holds `compare`, the comparison with an earlier version: `against` (that version's number), `before` (a copy of it), `versions` (every saved version, with its time and paragraph count), the matched items (`pairs`, `splits`, `merges`, `added`, `removed`) and what changed (`marks`, `lanes`, `quiet_closed`, `quiet_opened`, `gaps_closed`). They are worked out from your marks and the saved versions, so leave them out of `draft.json`; `build` replaces any it finds there.
 
 ## Quote matching
 
@@ -195,6 +195,39 @@ Matching is case-sensitive. A quote passes when its normalized form occurs in th
 | `data_file` | Data file | footer, before the vN.json name |
 | `judged_by` | judged by {lanes} | beside a question that only concept threads follow |
 | `range` | {first}–{last} | a section's paragraph range |
+| `changes_title` | What changed since v{v} | title of the what-changed panel |
+| `changes_none` | Nothing changed in the paragraphs, threads or gaps. | the panel, when nothing changed |
+| `changes_paragraphs` | Paragraphs | heading in the panel |
+| `changes_quiet` | Quiet threads | heading in the panel |
+| `changes_gaps` | Gaps that no longer apply | heading in the panel |
+| `change_edited` | Edited: {ids} | a line of the panel |
+| `change_added` | New: {ids} | a line of the panel |
+| `change_removed` | Removed: {ids} | a line of the panel |
+| `change_split` | Split: {old} → {new} | a line of the panel |
+| `change_merged` | Merged: {old} → {new} | a line of the panel |
+| `change_moved` | Moved: {old} → {new} | a line of the panel |
+| `change_marks` | {id}: {marks} | a line of the panel |
+| `change_thread_added` | New thread: {lanes} | a line of the panel |
+| `change_thread_removed` | Dropped thread: {lanes} | a line of the panel |
+| `change_quiet_closed` | {lane} no longer rests from {from} to {to} | a line of the panel |
+| `change_quiet_opened` | {lane} now rests for {n} paragraphs ({from}–{to}) | a line of the panel |
+| `change_gap` | {note} ({at}) | a line of the panel |
+| `versions` | Saved versions: {list}. To compare with another one, ask your agent. | foot of the panel |
+| `version_this` | this map | in the versions line |
+| `version_compared` | compared | in the versions line |
+| `detail_pair` | Before: {old}, {pct}% match | detail box |
+| `detail_moved` | moved | detail box, after `detail_pair` |
+| `detail_split` | Before: {old}, split into {new} | detail box |
+| `detail_merged` | Before: {old}, merged into this one | detail box |
+| `detail_new` | New since v{v} | detail box |
+| `before_col` | Before · v{v} | heads of the earlier cards and map |
+| `now_col` | Now · v{v} | heads of the current cards and map |
+| `compare_legend` | Thin lines join each paragraph to its match; hover over one to see how close it is · + new · − removed · ÷ split · ∪ merged | under the map legend |
+| `badge_added` | new | hover text of a `+` badge |
+| `badge_removed` | removed | hover text of a `−` badge |
+| `badge_split` | split | hover text of a `÷` badge and of a split's lines |
+| `badge_merged` | merged | hover text of a `∪` badge and of a merge's lines |
+| `link_title` | {old} → {new} · {pct}% match | hover text of a pair's line |
 | `no_data` | No readable analysis in this page: its data is missing or broken. Ask for the page to be built again. | error shown when the page cannot read its data |
 
 `no_data` appears only when the page cannot read its data at all, so it follows the browser's language (Korean, else English), and `ui_strings` cannot change it.

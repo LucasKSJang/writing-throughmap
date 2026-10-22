@@ -36,8 +36,41 @@ PRIVACY = {
         "에이전트의 약관에 따라",
     ),
 }
+PRIVACY_HEADINGS = {"README.md": "## Privacy", "README.ko.md": "## 개인정보"}
+# What "Privacy" tells a writer who shares index.html rather than the PNG: the page holds the whole
+# text of the draft, and after a revision the text of the version it was compared with as well.
+SHARING = {
+    "README.md": "`index.html` holds the full text of the draft, and after a revision, the text of "
+                 "the version it is compared with as well. To share only the map, share the PNG.",
+    "README.ko.md": "`index.html`에는 초안 전문이 들어 있고, 고친 뒤에는 비교한 이전 버전의 글도 "
+                    "들어 있어요. 지도만 공유하려면 PNG를 공유하세요.",
+}
 PROMPTS = ("Map the structure of essay.docx.", "이 글 구조 지도 그려줘",
            "I revised it. Compare with the first draft.")
+# The start of the paragraph that says what the page shows from the second version on, and of the
+# Limits bullet about how the comparison pairs paragraphs.
+COMPARISON = {
+    "README.md": ("From the second version on, the page also shows what changed:",
+                  "- The comparison matches paragraphs by their words."),
+    "README.ko.md": ("두 번째 버전부터는 바뀐 점도 보여 줘요.", "- 비교는 문단의 단어로 짝을 지어요."),
+}
+# The route without Python saves no version and compares nothing, so the two places that describe
+# it say so, each under its own heading: the Codex note on Windows' elevated sandbox, and the
+# paragraph on the route in "How it works". Each is a heading and the sentence that ends there.
+NO_PYTHON = {
+    "README.md": (
+        ("### Codex", "but a .docx cannot be read, so paste its text instead, and a revised draft "
+                      "is not compared with the earlier one."),
+        ("## How it works", "A .docx needs Python, so paste its text instead. Versions are not "
+                            "saved either, so a revised draft is not compared with the earlier "
+                            "one."),
+    ),
+    "README.ko.md": (
+        ("### Codex", "글을 붙여넣어 주세요. 고친 초안도 이전 버전과 비교하지 않고 그려요."),
+        ("## 작동 방식", "글을 붙여넣어 주세요. 버전도 저장되지 않아서, 고친 초안을 이전 버전과 "
+                       "비교하지 못해요."),
+    ),
+}
 HEADINGS = {
     "README.md": ["# writing-throughmap", "## What you get", "## Install", "### Claude Code",
                   "### Codex", "### Other agents", "## Use it", "## Privacy", "## How it works",
@@ -53,6 +86,11 @@ DASHES = (chr(0x2013), chr(0x2014))   # the en and em dash, as chr() so that no 
 
 def read(name: str) -> str:
     return (ROOT / name).read_text("utf-8")
+
+
+def part(name: str, heading: str) -> str:
+    """Return the text under the line ``heading`` (such as "## Privacy") up to the next heading."""
+    return read(name).split(heading + "\n", 1)[1].split("\n#", 1)[0]
 
 
 def strip_code(text: str) -> str:
@@ -84,6 +122,7 @@ class ReadmeTests(unittest.TestCase):
                 self.assertIn(cmd, text, (name, cmd))
             for phrase in PRIVACY[name]:
                 self.assertIn(phrase, text, (name, phrase))
+            self.assertIn(SHARING[name], part(name, PRIVACY_HEADINGS[name]), name)
 
     def test_example_prompts(self):
         for name in READMES:
@@ -93,6 +132,16 @@ class ReadmeTests(unittest.TestCase):
             third = [line for line in text.splitlines() if "I revised it." in line]
             self.assertEqual(len(third), 1, name)
             self.assertIn("v0.2", third[0], name)
+
+    def test_the_comparison_is_described(self):
+        for name, sentences in COMPARISON.items():
+            for sentence in sentences:
+                self.assertIn(sentence, read(name), name)
+        self.assertNotIn("This one is coming in v0.2", read("README.md"))
+        self.assertNotIn("v0.2에 들어갈 예정", read("README.ko.md"))
+        for name, places in NO_PYTHON.items():
+            for heading, sentence in places:
+                self.assertIn(sentence, part(name, heading), (name, heading))
 
     def test_same_headings_in_both(self):
         for name, headings in HEADINGS.items():

@@ -1,8 +1,9 @@
 """Builders and sample data shared by the test modules.
 
 Sections: temporary files, Word documents (.docx), reader blocks with sample sources, running the
-command line, the sample draft with its analysis, the stub page and analyses for build, and the
-real page with the analyses its tests open. Later tasks add their helpers below.
+command line, the sample draft with its analysis, the stub page and analyses for build, the
+real page with the analyses its tests open, and the sentences, items, versions and builds of a draft
+that the comparison of two versions works on. Later tasks add their helpers below.
 """
 
 from __future__ import annotations
@@ -17,13 +18,15 @@ import shutil
 import sys
 import tempfile
 import zipfile
+from collections.abc import Sequence
 from pathlib import Path
 from xml.sax.saxutils import escape, quoteattr
 
 from throughmap import main
-from tm_build import DEFAULT_TEMPLATE, build, render_html
+from tm_build import DEFAULT_TEMPLATE, build, compute_observations, compute_runs, render_html
 from tm_check import ROLES
 from tm_source import assemble_source
+from tm_text import word_count
 
 # --- Temporary files ---------------------------------------------------------------------------
 
@@ -445,14 +448,23 @@ def table_item(analysis: dict) -> dict:
     return next(item for item in analysis["paragraphs"] if item["kind"] == "table")
 
 
-def write_draft(source: dict, analysis: dict) -> str:
-    """Write source.json and draft.json into a new x.throughmap folder; return draft.json's path."""
-    folder = tmp_dir("x.throughmap")
+def rewrite_draft(draft: str, source: dict, analysis: dict) -> None:
+    """Write source.json and draft.json beside ``draft``, as write_draft writes them.
+
+    The files that are there are replaced: this is the next analysis of the same draft.
+    """
+    folder = os.path.dirname(draft)
     for name, data in (("source.json", source), ("draft.json", analysis)):
         with open(os.path.join(folder, name), "w", encoding="utf-8", newline="\n") as handle:
             json.dump(data, handle, ensure_ascii=False, indent=1)
             handle.write("\n")
-    return os.path.join(folder, "draft.json")
+
+
+def write_draft(source: dict, analysis: dict) -> str:
+    """Write source.json and draft.json into a new x.throughmap folder; return draft.json's path."""
+    draft = os.path.join(tmp_dir("x.throughmap"), "draft.json")
+    rewrite_draft(draft, source, analysis)
+    return draft
 
 
 # --- Build: the stub page and analyses for the computed fields ----------------------------------
@@ -693,3 +705,172 @@ def forty_paragraphs(first_section_size: int = 7) -> dict:
 def total_marks(analysis: dict) -> int:
     """Count the lane marks on all the items of ``analysis``: the dots its map draws."""
     return sum(len(item["lanes"]) for item in analysis["paragraphs"])
+
+
+# --- Comparison: two versions of a draft -------------------------------------------------------
+
+# Thirty statements about bread or gardens, each of 12 to 15 words. No two share more than three
+# words besides "the", "a", "and" and "of", so paragraphs built from different ones are unrelated to
+# the matching. A test names a sentence by its number from 1: para(1, 2) joins the first two.
+SENTENCES = (
+    "Rye loaves need patience, because the sour starter wakes slowly in a cold kitchen overnight.",
+    "Sunflowers turn their heavy heads toward the east every morning until August ends.",
+    "Our baker scores each loaf with a razor so steam can escape.",
+    "Compost warms beneath old straw, feeding worms that loosen soil around young carrots.",
+    "Flour, water and salt are all a loaf needs, yet nobody bakes two the same.",
+    "Marigolds planted between the tomato rows keep aphids away without any spray.",
+    "Warm bread tastes best when the crust crackles softly while you slice it.",
+    "A cracked terracotta pot still holds basil, provided the roots find some shade.",
+    "Sourdough keeps its tang because wild yeast and friendly bacteria share one jar.",
+    "Neighbours swap surplus zucchini over the fence every July, grumbling about how many grew.",
+    "Kneading stretches the gluten until the dough turns smooth, elastic and faintly shiny.",
+    "Raised beds drain faster than flat ground, which suits lettuce in a wet spring.",
+    "Her grandmother braided the festival bread from seven ropes, one for every weekday.",
+    "Slugs gather under damp boards at dawn, so lift them and move the whole crowd.",
+    "Stale baguette becomes breadcrumbs, croutons or pudding, so the pantry throws nothing away.",
+    "Peas climb the netting unaided once their tendrils discover something thin enough to hold.",
+    "The village oven fires at four, and queues form long before the shutters lift.",
+    "Frost nips the pumpkin vines overnight, though the squash beneath their leaves survives.",
+    "Brioche is rich with butter and eggs, a treat nobody finishes alone.",
+    "Mint spreads underground, so most gardeners confine it to a bucket sunk in the lawn.",
+    "Flatbreads blister on the hot stone, and the cook flips them with bare fingers.",
+    "Bees visit the lavender hedge all afternoon, humming louder as the heat rises.",
+    "Yeast feeds on sugar and breathes out tiny bubbles that lift the dough.",
+    "Rhubarb returns each spring without help, pushing pink stalks through the cold mud.",
+    "Customers argue whether a seeded crust beats a plain one, and the baker just smiles.",
+    "Watering at noon wastes most of it, since the sun drinks first.",
+    "Rice flour makes a crumb that is tender but crumbles when spread with jam.",
+    "Beetroot leaves taste sweet when picked small, but turn tough once the summer peaks.",
+    "The apprentice woke at midnight to shape rolls while everyone else slept.",
+    "A scarecrow in the orchard has never frightened a single crow, only amused them.",
+)
+
+# A Korean paragraph about a bakery and its garden plot, and the same paragraph with the endings of
+# five words changed from the present to the past: 섞는다, 부푼다, 지피고, 굽는다 and 맞바꾼다.
+KO_BEFORE = ("빵집 주인은 새벽마다 텃밭에서 딴 허브를 반죽에 섞는다. 반죽은 밤새 서늘한 곳에서 천천히 부푼다. "
+             "아침에 주인은 화덕에 불을 지피고 빵을 굽는다. 이웃들은 갓 구운 빵을 상추와 맞바꾼다.")
+KO_AFTER = ("빵집 주인은 새벽마다 텃밭에서 딴 허브를 반죽에 섞었다. 반죽은 밤새 서늘한 곳에서 천천히 부풀었다. "
+            "아침에 주인은 화덕에 불을 지폈고 빵을 구웠다. 이웃들은 갓 구운 빵을 상추와 맞바꿨다.")
+
+
+def para(*numbers: int) -> str:
+    """Return the sentences of SENTENCES numbered ``numbers`` (from 1), joined by spaces."""
+    return " ".join(SENTENCES[number - 1] for number in numbers)
+
+
+def items_of(*texts: str) -> list[dict]:
+    """Return the paragraph items P1, P2 and so on, one for each of ``texts``, with no marks.
+
+    Only the id, the kind and the text of an item matter to the matching. A new list every call.
+    """
+    return [{"id": f"P{number}", "kind": "paragraph", "text": text, "lanes": {}}
+            for number, text in enumerate(texts, 1)]
+
+
+def version_of(paragraphs: Sequence[str], marks: dict[str, Sequence[int]],
+               gaps: Sequence[tuple[Sequence[int], str]] = (),
+               ui_language: str = "en") -> tuple[dict, dict]:
+    """Return ``(source, analysis)`` for a draft made of the texts ``paragraphs``; check passes both.
+
+    The source holds the paragraphs P1 and on and no sections, so the analysis has one section, S1
+    "Body", and it is inferred. The analysis is titled "Revision Essay" and has the question Q1
+    and a lane for each key of ``marks``, in its order. A key that starts with "q" is a question
+    lane for Q1, any other key a concept lane that serves Q1, and a lane's label is its id
+    capitalized. ``marks`` maps a lane to the numbers (from 1) of the paragraphs it marks; each
+    mark is major and quotes the first five words of its paragraph. Every paragraph is a claim,
+    labelled "Part N", whose evidence is its first five words. ``gaps`` holds a pair of paragraph
+    numbers and a note for each gap. New dicts on every call.
+    """
+    lanes = [{"id": lane_id, "kind": "question" if lane_id.startswith("q") else "concept",
+              "label": lane_id.capitalize(), "question": "Q1"} for lane_id in marks]
+    items = []
+    for number, text in enumerate(paragraphs, 1):
+        opening = " ".join(text.split()[:5])
+        items.append({
+            "id": f"P{number}", "kind": "paragraph", "section": "S1", "text": text,
+            "role": "claim", "label": f"Part {number}", "evidence": opening,
+            "lanes": {lane_id: {"weight": "major", "quote": opening}
+                      for lane_id, numbers in marks.items() if number in numbers}})
+    analysis = {
+        "schema": "throughmap/1",
+        "essay": {"title": "Revision Essay", "source": "revision.md", "source_kind": "md",
+                  "language": "en", "word_count": sum(word_count(text) for text in paragraphs)},
+        "ui_language": ui_language,
+        "thesis": "Patient work in the kitchen and the garden pays off.",
+        "questions": [{"id": "Q1", "text": "What does patience give a baker or a gardener?"}],
+        "lanes": lanes,
+        "sections": [{"id": "S1", "short": "Body", "title": "", "inferred": True, "first": "P1",
+                      "last": f"P{len(paragraphs)}",
+                      "conclusion": "Each paragraph adds one more observation.", "baton": "",
+                      "answers": ["Q1"]}],
+        "paragraphs": items,
+        "cases": [],
+        "gaps": [{"at": [f"P{number}" for number in numbers], "note": note,
+                  "direction": "Tie it to the thesis, so that the reader sees why it matters."}
+                 for numbers, note in gaps],
+    }
+    return source_of(analysis), analysis
+
+
+def built_version(analysis: dict, version: int) -> dict:
+    """Return ``analysis`` as build saves it as v<version>.json: with version, time and computed.
+
+    The time is fixed. The runs and observations are the ones build works out for the analysis.
+    """
+    return {**analysis, "version": version, "generated_at": "2026-10-19T12:00:00Z",
+            "computed": {"runs": compute_runs(analysis),
+                         "observations": compute_observations(analysis)}}
+
+
+# The note of the gap at P8 in the first version of revision(), a gap the second version drops.
+GAP_AT_P8_NOTE = "P8 adds a claim that nothing before it supports."
+# What changes_line says of revision(): its edited, added, removed, split, merged and moved
+# paragraphs, then the marks, the threads, the quiet stretches and the gaps, in that order.
+REVISION_CHANGES = ("changes from v1: 1 edited (P7) · 1 added (P8) · 1 removed (v1 P8) · "
+                    "1 split (v1 P2 into P2 and P3) · 1 merged (v1 P5 and v1 P6 into P5) · "
+                    "1 moved (v1 P3 to P7) · marks: 2 gained, 2 lost · 1 new thread (Cost) · "
+                    "1 dropped thread (Gone) · quiet: 1 closed, 1 opened · "
+                    "1 earlier gap no longer applies")
+
+
+def revision(ui_language: str = "en") -> tuple[tuple[dict, dict], tuple[dict, dict]]:
+    """Return the first and the second version of one draft, each a (source, analysis) pair.
+
+    What became of the eight paragraphs of v1 in v2 (v1's P8 is removed, and v2 has a new P8):
+    - P1 and P4 stay as they are, and v1 P7 stays as P6.
+    - v1 P2 is split into P2 and P3, and v1 P5 and P6 are merged into P5.
+    - v1 P3 gets a sentence (it is edited) and moves to P7.
+    The threads: v1 has q1, own, pace and gone; v2 has q1, own, pace and cost. The marks gained
+    are q1 on v2's P6 and P7, the marks lost own on P4 and pace on P7.
+    The gaps: v1 has one at P3 and one at P8 (GAP_AT_P8_NOTE), v2 one at P7. So the gap at P3 goes
+    on at P7, and the one at P8 no longer applies. The quiet stretch of q1 from P1 to P8 (6
+    paragraphs) ends in v2, and one of pace from P1 to P8 begins.
+    """
+    first = version_of(
+        [para(1, 2, 3), para(4, 5, 6), para(7, 8, 9), para(10, 11, 12), para(13, 14, 15),
+         para(16, 17, 18), para(19, 20, 21), para(22, 23, 24)],
+        {"q1": [1, 8], "own": [2, 4, 5], "pace": [1, 2, 3], "gone": [8]},
+        gaps=[([3], "The case in P3 is never tied to the thesis."), ([8], GAP_AT_P8_NOTE)],
+        ui_language=ui_language)
+    second = version_of(
+        [para(1, 2, 3), para(4, 5), para(6), para(10, 11, 12), para(13, 14, 15, 16, 17, 18),
+         para(19, 20, 21), para(7, 8, 9, 25), para(26, 27, 28)],
+        {"q1": [1, 6, 7], "own": [2, 5], "pace": [1, 8], "cost": [8]},
+        gaps=[([7], "The case in P7 is never tied to the thesis.")],
+        ui_language=ui_language)
+    return first, second
+
+
+def two_builds(first: tuple[dict, dict], second: tuple[dict, dict],
+               template_path: str = STUB_TEMPLATE_PATH, compare_with: int | None = None) -> dict:
+    """Build ``first`` as v1 and then ``second`` as v2 in the same folder; return the second build.
+
+    Each is a (source, analysis) pair. ``first`` is written with write_draft and built, then
+    rewrite_draft puts ``second`` in its place, and ``second`` is built with ``compare_with`` as
+    build takes it. The result is the second build's: its json_path is v2.json, and draft.json
+    lies beside it.
+    """
+    draft = write_draft(*first)
+    build(draft, template_path)
+    rewrite_draft(draft, *second)
+    return build(draft, template_path, compare_with)

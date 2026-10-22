@@ -1,4 +1,4 @@
-"""Text helpers shared by the extractor and the checker.
+"""Text helpers shared by the extractor, the checker, the build summary and the comparison.
 
 The checker decides whether a quote matches the draft with normalize() and contains_verbatim(),
 so the rules below are exact and live in one place.
@@ -86,6 +86,11 @@ def contains_verbatim(haystack: str, needle: str) -> bool:
 def word_count(text: str) -> int:
     """Count whitespace-separated tokens."""
     return len(text.split())
+
+
+def one_line(text: object) -> str:
+    """Return ``text`` with every run of whitespace, line breaks included, as one space."""
+    return " ".join(str(text).split())
 
 
 def _is_latin(char: str) -> bool:

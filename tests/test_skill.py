@@ -5,6 +5,7 @@ make of its draft, the extract options must be the ones the command line offers,
 strings must be the template's own table.
 """
 
+import json
 import os
 import re
 import unittest
@@ -16,6 +17,7 @@ from tests.fixtures import FORTY_FIVE, run_main, tmp_dir
 from tests.support import ROOT, frontmatter, json_blocks
 from tm_build import DEFAULT_TEMPLATE, PLACEHOLDER, render_html
 from tm_check import LIMITS, ROLES, check
+from tm_compare import changes_line
 from tm_text import normalize, quoted_segments, sentence_count
 
 SKILL_DIR = ROOT / "skills" / "throughmap"
@@ -37,6 +39,7 @@ COMMAND_LINES = (
     'check "<out>/draft.json"',
     'build "<out>/draft.json"',
     'versions "<out>"',
+    'build "<out>/draft.json" --compare v1',
 )
 
 
@@ -133,6 +136,18 @@ class SkillTests(unittest.TestCase):
         result = check(blocks["draft.json"], blocks["source.json"])
         self.assertEqual(result["errors"], [])
 
+    def test_comparing_drafts_is_described_not_missing(self):
+        # v0.1 told the agent that comparing two drafts was not in the version; v0.2 does it, and
+        # the description is what makes an agent reach for the skill when someone asks for it.
+        text = SKILL_MD.read_text("utf-8")
+        self.assertNotIn("is not in this version", text)
+        self.assertIn("to compare a revised draft with an earlier one",
+                      frontmatter(SKILL_MD)["description"])
+
+    def test_the_skill_version_is_the_plugin_version(self):
+        plugin = json.loads((ROOT / ".claude-plugin/plugin.json").read_text("utf-8"))
+        self.assertEqual(frontmatter(SKILL_MD)["metadata"]["version"], plugin["version"])
+
 
 class SkillFollowsTheCodeTests(unittest.TestCase):
     def test_sections_in_order(self):
@@ -149,6 +164,15 @@ class SkillFollowsTheCodeTests(unittest.TestCase):
         self.assertEqual(code, 0)
         options = set(re.findall(r"--[a-z][a-z-]*", usage)) - {"--help"}
         self.assertGreaterEqual(options, {"--name", "--out", "--keep-short", "--section"})
+        text = SKILL_MD.read_text("utf-8")
+        for option in sorted(options):
+            self.assertIn(option, text)
+
+    def test_every_build_option_documented(self):
+        code, usage = run_main(["build", "--help"])
+        self.assertEqual(code, 0)
+        options = set(re.findall(r"--[a-z][a-z-]*", usage)) - {"--help"}
+        self.assertGreaterEqual(options, {"--compare"})
         text = SKILL_MD.read_text("utf-8")
         for option in sorted(options):
             self.assertIn(option, text)
@@ -182,6 +206,15 @@ class SkillFollowsTheCodeTests(unittest.TestCase):
             self.assertIn(f"every `{marker}` as `{escape}`", text)
         for doc in (SKILL_MD, *sorted(REFS.glob("*.md"))):
             self.assertNotIn(BACKSLASH + "u003c", doc.read_text("utf-8"), doc)   # the other form
+
+    def test_without_python_a_revised_draft_is_not_compared(self):
+        # The route without Python saves no vN.json and works out no compare: the page that an
+        # agent fills in by hand shows the new version alone. An agent that is not told so may
+        # write a compare itself, since schema.md describes its keys.
+        step = bullet(section(SKILL_MD, "### Without Python"), "4. ")
+        self.assertIn("Without Python, no version is saved and nothing is compared: for a revised "
+                      "draft, the page shows the new version alone, so tell the user that the "
+                      "comparison needs Python, and never write `compare` yourself.", step)
 
     def test_schema_lists_every_page_string(self):
         template = Path(DEFAULT_TEMPLATE).read_text("utf-8")
@@ -235,7 +268,8 @@ class SkillFollowsTheCodeTests(unittest.TestCase):
         line = tm_build.other_files_line("<out>", ["assemble.py"])
         self.assertEqual(line, "also in <out>: assemble.py (remove it if you created it)")
         procedure = section(SKILL_MD, "## Procedure")
-        self.assertIn(f"`{line}`", procedure)
+        # The line comes last: the fifth of an ordinary summary, the sixth after a compared build.
+        self.assertIn(f"a last line names them, such as `{line}`", procedure)
         self.assertIn("Delete the ones you wrote, and tell the user about the rest.", procedure)
 
     def test_the_page_is_opened_with_the_command_of_the_shell(self):
@@ -258,6 +292,29 @@ class SkillFollowsTheCodeTests(unittest.TestCase):
         headless = throughmap._over_limit_advice(dict(FORTY_FIVE, sections=[]))[0]
         self.assertIn(f"`{listed}` comes with a list", procedure)
         self.assertIn(f"`{headless.split(':')[0]}`:", procedure)
+
+    def test_the_changes_line_is_quoted_as_build_prints_it(self):
+        # After a revision, step 6's summary has a line that the first version's has not. SKILL.md
+        # shows it as changes_line writes it, for a revision that edits P4, adds P7, splits P2 and
+        # gains a mark on a renumbered paragraph (v1 P5 is P6 now, and has not moved), so that the
+        # agent knows what to relay.
+        data = {"lanes": [], "compare": {
+            "against": 1, "before": {"lanes": []}, "pairs": [
+                {"old": "P4", "new": "P4", "ratio": 0.9, "edited": True, "moved": False},
+                {"old": "P5", "new": "P6", "ratio": 1.0, "edited": False, "moved": False}],
+            "splits": [{"old": "P2", "new": ["P2", "P3"], "cover": 1.0}], "merges": [],
+            "added": ["P7"], "removed": [],
+            "marks": [{"old": "P5", "new": "P6", "gained": ["q1"], "lost": []}],
+            "lanes": {"added": [], "removed": []}, "quiet_closed": [], "quiet_opened": [],
+            "gaps_closed": []}}
+        self.assertIn(changes_line(data) + "\n", section(SKILL_MD, "## Procedure"))
+
+    def test_schema_names_what_build_adds(self):
+        adds = section(REFS / "schema.md", "### What build adds")
+        for key in ("compare", "against", "before", "versions", "pairs", "splits", "merges",
+                    "added", "removed", "marks", "lanes", "quiet_closed", "quiet_opened",
+                    "gaps_closed"):
+            self.assertIn(f"`{key}`", adds)
 
 
 class RulesFromTheRunsTests(unittest.TestCase):
@@ -563,6 +620,37 @@ class RulesFromTheRunsTests(unittest.TestCase):
         start = gaps.index("4. **A claim with no support.**")
         self.assertIn("A paragraph you call unsupported cannot be `evidence`, as roles.md says.",
                       gaps[start:gaps.index("5. **", start)])
+
+    def test_a_revision_goes_into_the_earlier_maps_folder(self):
+        # Writers often save the revision as a new file, essay-v2.docx beside essay.docx. extract
+        # then makes a folder of its own, which holds nothing to compare with, so the skill sends
+        # the revision into the folder of the earlier draft.
+        self.assertIn("The revision must go into the same `<out>` as the earlier versions: when it "
+                      "is a new file, such as `essay-v2.docx` beside `essay.docx`, run `extract` on "
+                      'it with `--out "<out>"`, the earlier draft\'s folder, and use that folder '
+                      "for the rest.", section(SKILL_MD, "## Procedure"))
+
+    def test_a_revision_keeps_the_ids_of_continuing_threads(self):
+        # Each analysis is written afresh, so a thread can come back under another id. The
+        # comparison then reports one thread dropped and one new, and compares the marks of
+        # neither, since it compares marks only on the threads that both versions list.
+        self.assertIn("keep the `id` of every question and thread that continues from the latest "
+                      "one, and give a new question or thread an id that no earlier version used.",
+                      section(SKILL_MD, "## Writing the analysis"))
+
+    def test_a_revision_carries_unchanged_marks_and_live_gaps_forward(self):
+        # An earlier gap that no gap of the new analysis names is reported as no longer applying
+        # (tm_compare._gaps_closed), and marks are compared on unchanged pairs as on edited ones.
+        revised = bullet(section(SKILL_MD, "## Writing the analysis"), "- **A revised draft.**")
+        for sentence in (
+                "Keep the role, label, evidence and thread marks of a paragraph whose text did not "
+                "change, unless the revision changed what it does: the page reports every mark "
+                "that comes or goes as a change.",
+                "Re-read each gap of the latest version against the new text.",
+                "While it still applies, write it again, naming its items by their new ids, and "
+                "leave it out only when the revision dealt with it: the page reports every "
+                "earlier gap that is not written again as one that no longer applies."):
+            self.assertIn(sentence, revised)
 
     def test_the_analysis_examples_come_from_outside_the_public_drafts(self):
         # The runs passed exactly the spots that the skill's examples were taken from, and missed

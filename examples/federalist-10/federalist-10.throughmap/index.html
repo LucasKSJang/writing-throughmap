@@ -119,6 +119,13 @@ strong { font-weight: 600; }
 .tm-hint { margin: 0 0 10px; font-size: 12.5px; color: var(--text-2); }
 
 /* Section flow */
+.tm-flow-pair.is-compare { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px 20px; }
+.tm-col-head, .tm-map-head {
+  margin: 0 0 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-2);
+}
 .tm-card {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -144,7 +151,7 @@ strong { font-weight: 600; }
 .tm-seq { margin-top: 6px; line-height: 2.15; }
 .tm-step { white-space: nowrap; }
 .tm-arrow { font-size: 12px; color: var(--text-2); }
-.tm-role {
+.tm-role, .tm-role-before {
   padding: 1px 7px;
   font-size: 12px;
   line-height: 1.5;
@@ -152,8 +159,10 @@ strong { font-weight: 600; }
   border: 1px solid var(--border);
   border-radius: 5px;
   background: var(--surface-2);
-  cursor: pointer;
 }
+.tm-role { cursor: pointer; }
+.tm-role-before { display: inline-block; color: var(--text-2); background: transparent; }
+.tm-card.is-before { background: transparent; }
 .tm-role:hover { border-color: var(--text-2); }
 .tm-role[aria-pressed="true"] { background: var(--sel); border-color: var(--sel-edge); }
 .tm-warn {
@@ -212,6 +221,14 @@ strong { font-weight: 600; }
 .tm-svg .tm-span { stroke-width: 1; stroke-dasharray: 2 4; }
 .tm-svg .tm-run { stroke-width: 2.5; stroke-opacity: 0.5; stroke-linecap: round; }
 .tm-svg .tm-mark { cursor: pointer; }
+#tm-compare-legend { margin-top: -6px; }
+.tm-map-head:not(:first-child) { margin-top: 8px; }
+#tm-map-before .tm-lname { cursor: default; }
+#tm-map-before .tm-lname:hover .tm-lname-bg { fill: transparent; }
+.tm-svg .tm-link line:not(.tm-hit) { stroke: var(--text-2); stroke-width: 1; }
+.tm-svg .tm-link.is-sel line:not(.tm-hit) { stroke: var(--sel-edge); }
+.tm-svg .tm-link line.tm-hit { stroke: transparent; stroke-width: 10; }
+.tm-svg .tm-badge { font-weight: 600; fill: var(--text); }
 
 /* Detail box */
 .tm-detail {
@@ -225,6 +242,7 @@ strong { font-weight: 600; }
 .tm-detail.is-empty { color: var(--text-2); }
 .tm-detail-threads { margin-top: 2px; font-size: 12.5px; color: var(--text-2); }
 .tm-detail-note { margin-top: 2px; color: var(--text-2); }
+.tm-detail-before { margin-top: 3px; font-size: 12.5px; color: var(--text-2); }
 .tm-thread { white-space: nowrap; }
 .tm-quote { font-style: italic; }
 .tm-quote:lang(ko), .tm-quote:lang(ja), .tm-quote:lang(zh) { font-style: normal; }
@@ -290,6 +308,11 @@ strong { font-weight: 600; }
 .tm-subhead { margin: 16px 0 0; font-size: 13px; font-weight: 600; color: var(--text-2); }
 .tm-none { margin: 8px 0 0; color: var(--text-2); }
 
+/* What changed */
+.tm-change { padding: 5px 0; border-bottom: 1px solid var(--line); }
+#tm-changes-body > .tm-subhead:first-child { margin-top: 6px; }
+#tm-versions { margin: 14px 0 0; }
+
 /* Footer */
 .tm-footer {
   margin-top: 18px;
@@ -303,6 +326,9 @@ strong { font-weight: 600; }
 html.tm-poster-mode, html.tm-poster-mode body { background: #ffffff; color-scheme: light; }
 #tm-poster { display: block; margin: 0 auto; }
 
+@media (min-width: 900px) {
+  .tm-flow-pair.is-compare { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 @media (max-width: 560px) {
   .tm-page { padding-top: 20px; }
   .tm-card { grid-template-columns: minmax(0, 1fr); }
@@ -336,9 +362,12 @@ html.tm-poster-mode, html.tm-poster-mode body { background: #ffffff; color-schem
     display: none !important;
   }
   .tm-map-scroll { overflow: visible; }
-  #tm-map { max-width: 100%; height: auto; }
-  .tm-card, .tm-baton, .tm-map-scroll, .tm-row, .tm-gap, .tm-obs, .tm-case { break-inside: avoid; }
-  .tm-panel-title, .tm-subhead, summary { break-after: avoid; }
+  /* The maps of a comparison shrink together: --share is a map's part of the strip's width. */
+  #tm-map, #tm-map-before, #tm-links { max-width: calc(100% * var(--share, 1)); height: auto; }
+  .tm-card, .tm-baton, .tm-map-scroll, .tm-row, .tm-gap, .tm-obs, .tm-case, .tm-change {
+    break-inside: avoid;
+  }
+  .tm-panel-title, .tm-subhead, h3.tm-col-head, summary { break-after: avoid; }
   summary { list-style: none; cursor: default; }
   summary::-webkit-details-marker { display: none; }
 }
@@ -371,16 +400,36 @@ html.tm-poster-mode, html.tm-poster-mode body { background: #ffffff; color-schem
     </div>
   </header>
 
+  <section class="tm-panel" id="tm-changes" hidden>
+    <h2 class="tm-panel-title" id="tm-changes-title"></h2>
+    <div id="tm-changes-body"></div>
+    <p class="tm-hint" id="tm-versions"></p>
+  </section>
+
   <section class="tm-panel" id="tm-flow">
     <h2 class="tm-panel-title" id="tm-flow-title"></h2>
     <p class="tm-hint" id="tm-flow-hint"></p>
-    <div class="tm-cards" id="tm-cards"></div>
+    <div class="tm-flow-pair" id="tm-flow-pair">
+      <div id="tm-flow-before" hidden>
+        <h3 class="tm-col-head" id="tm-flow-before-head"></h3>
+        <div class="tm-cards" id="tm-cards-before"></div>
+      </div>
+      <div id="tm-flow-now">
+        <h3 class="tm-col-head" id="tm-flow-now-head" hidden></h3>
+        <div class="tm-cards" id="tm-cards"></div>
+      </div>
+    </div>
   </section>
 
   <section class="tm-panel" id="tm-map-panel">
     <h2 class="tm-panel-title" id="tm-map-title"></h2>
     <p class="tm-hint" id="tm-map-legend"></p>
+    <p class="tm-hint" id="tm-compare-legend" hidden></p>
     <div class="tm-map-scroll" id="tm-map-scroll">
+      <div class="tm-map-head" id="tm-map-before-head" hidden></div>
+      <svg id="tm-map-before" class="tm-svg" role="group" hidden></svg>
+      <svg id="tm-links" class="tm-svg" aria-hidden="true" hidden></svg>
+      <div class="tm-map-head" id="tm-map-now-head" hidden></div>
       <svg id="tm-map" class="tm-svg" role="group"></svg>
     </div>
     <div class="tm-detail is-empty" id="tm-detail"></div>
@@ -443,9 +492,13 @@ document.addEventListener("DOMContentLoaded", function () {
     BAND_H: 20,                        // the section bands along the top
     LANE_GAP: 26,                      // from one row of the map to the next
     MARK_R: Object.freeze({ major: 5, minor: 3 }),
+    LINKS_H: 36,                       // the strip between the two maps of a comparison
+    LINKS_Y: Object.freeze({ before: 5, from: 10, to: 26, now: 31 }),   // where things sit in it
   });
   const HUES = Object.freeze({ question: "#1D9E75", concept: "#7F77DD" });
   const NEUTRAL_HUE = "#8a887f";       // a question no thread follows; a lane of neither kind
+  // What each badge on the strip between the two maps shows (the minus is U+2212).
+  const BADGE_GLYPHS = Object.freeze({ added: "+", removed: "−", split: "÷", merged: "∪" });
 
   // --- Strings ------------------------------------------------------------------------------
   // A string is looked up in the analysis's ui_strings, then in the table of its ui_language,
@@ -508,6 +561,39 @@ document.addEventListener("DOMContentLoaded", function () {
       data_file: "Data file",
       judged_by: "judged by {lanes}",
       range: "{first}–{last}",
+      changes_title: "What changed since v{v}",
+      changes_none: "Nothing changed in the paragraphs, threads or gaps.",
+      changes_paragraphs: "Paragraphs",
+      changes_quiet: "Quiet threads",
+      changes_gaps: "Gaps that no longer apply",
+      change_edited: "Edited: {ids}",
+      change_added: "New: {ids}",
+      change_removed: "Removed: {ids}",
+      change_split: "Split: {old} → {new}",
+      change_merged: "Merged: {old} → {new}",
+      change_moved: "Moved: {old} → {new}",
+      change_marks: "{id}: {marks}",
+      change_thread_added: "New thread: {lanes}",
+      change_thread_removed: "Dropped thread: {lanes}",
+      change_quiet_closed: "{lane} no longer rests from {from} to {to}",
+      change_quiet_opened: "{lane} now rests for {n} paragraphs ({from}–{to})",
+      change_gap: "{note} ({at})",
+      versions: "Saved versions: {list}. To compare with another one, ask your agent.",
+      version_this: "this map",
+      version_compared: "compared",
+      detail_pair: "Before: {old}, {pct}% match",
+      detail_moved: "moved",
+      detail_split: "Before: {old}, split into {new}",
+      detail_merged: "Before: {old}, merged into this one",
+      detail_new: "New since v{v}",
+      before_col: "Before · v{v}",
+      now_col: "Now · v{v}",
+      compare_legend: "Thin lines join each paragraph to its match; hover over one to see how close it is · + new · − removed · ÷ split · ∪ merged",
+      badge_added: "new",
+      badge_removed: "removed",
+      badge_split: "split",
+      badge_merged: "merged",
+      link_title: "{old} → {new} · {pct}% match",
       no_data: "No readable analysis in this page: its data is missing or broken. Ask for the page to be built again.",
     },
     ko: {
@@ -562,6 +648,39 @@ document.addEventListener("DOMContentLoaded", function () {
       data_file: "분석 기록",
       judged_by: "{lanes} 실로 판정",
       range: "{first}~{last}",
+      changes_title: "v{v} 이후 바뀐 점",
+      changes_none: "문단, 실, 손볼 곳 모두 그대로예요.",
+      changes_paragraphs: "문단",
+      changes_quiet: "쉬는 실",
+      changes_gaps: "더는 해당하지 않는 손볼 곳",
+      change_edited: "고친 문단: {ids}",
+      change_added: "새 문단: {ids}",
+      change_removed: "빠진 문단: {ids}",
+      change_split: "나뉜 문단: {old} → {new}",
+      change_merged: "합친 문단: {old} → {new}",
+      change_moved: "옮긴 문단: {old} → {new}",
+      change_marks: "{id}: {marks}",
+      change_thread_added: "새 실: {lanes}",
+      change_thread_removed: "빠진 실: {lanes}",
+      change_quiet_closed: "{lane} 실이 {from}~{to}에서 더는 쉬지 않아요",
+      change_quiet_opened: "{lane} 실이 이제 {from}부터 {to}까지 {n}개 문단 동안 쉬어요",
+      change_gap: "{note} ({at})",
+      versions: "저장된 버전: {list}. 다른 버전과 비교하려면 에이전트에게 말해 주세요.",
+      version_this: "지금 지도",
+      version_compared: "비교 대상",
+      detail_pair: "이전: {old}, {pct}% 일치",
+      detail_moved: "옮김",
+      detail_split: "이전: {old}에서 나뉨 ({new})",
+      detail_merged: "이전: {old}, 하나로 합침",
+      detail_new: "v{v} 이후 새 문단",
+      before_col: "이전 · v{v}",
+      now_col: "지금 · v{v}",
+      compare_legend: "가는 선은 서로 맞는 문단을 이어요. 선에 마우스를 올리면 얼마나 같은지 보여요 · + 새 문단 · − 빠진 문단 · ÷ 나뉜 문단 · ∪ 합친 문단",
+      badge_added: "새 문단",
+      badge_removed: "빠진 문단",
+      badge_split: "나뉜 문단",
+      badge_merged: "합친 문단",
+      link_title: "{old} → {new} · {pct}% 일치",
       no_data: "이 파일에서 읽을 수 있는 분석을 찾지 못했어요. 데이터가 없거나 깨졌어요. 페이지를 다시 만들어 달라고 해 주세요.",
     },
   };
@@ -609,79 +728,106 @@ document.addEventListener("DOMContentLoaded", function () {
   const builtIn = has(STRINGS, languageKey) ? STRINGS[languageKey] : STRINGS.en;
   const stringLayers = [isObject(data.ui_strings) ? data.ui_strings : {}, builtIn, STRINGS.en];
 
-  const items = [];                    // the paragraphs, tables and figures, in document order
-  const itemById = new Map();
-  listOf(data.paragraphs).forEach(function (raw) {
-    if (!isObject(raw) || raw.id === undefined || raw.id === null) return;
-    const id = String(raw.id);
-    if (itemById.has(id)) return;
-    const item = {
-      id: id,
-      index: items.length,
-      kind: raw.kind === "table" || raw.kind === "figure" ? raw.kind : "paragraph",
-      section: asText(raw.section),
-      text: raw.text,
-      role: asText(raw.role),
-      label: asText(raw.label),
-      evidence: raw.evidence,
-      lanes: isObject(raw.lanes) ? raw.lanes : {},
-    };
-    items.push(item);
-    itemById.set(id, item);
-  });
+  // What the page draws of one version of the analysis: its items, threads, questions and
+  // sections, and the runs of its threads. The page reads its own data with this, and so the
+  // earlier version that a comparison carries, which build vouches for less than for the page's
+  // own data. Whatever is missing or of the wrong kind is left out.
+  function modelOf(raw) {
+    const source = isObject(raw) ? raw : {};
 
-  const lanes = [];                    // the threads, in the order of the analysis
-  const laneById = new Map();
-  listOf(data.lanes).forEach(function (raw) {
-    if (!isObject(raw) || raw.id === undefined || raw.id === null) return;
-    const id = String(raw.id);
-    if (laneById.has(id)) return;
-    const kind = raw.kind === "question" || raw.kind === "concept" ? raw.kind : "";
-    const lane = {
-      id: id,
-      kind: kind,
-      label: asText(raw.label) || id,
-      sub: asText(raw.sub),
-      question: asText(raw.question),
-      hue: HUES[kind] || NEUTRAL_HUE,
-    };
-    // A question thread goes by its question (Q1) and then its label; a concept thread by its
-    // label and then its sub-label, as the approved layout names them.
-    if (kind === "question" && lane.question) {
-      lane.name = lane.question;
-      lane.desc = lane.label !== lane.question ? lane.label : lane.sub;
-    } else {
-      lane.name = lane.label;
-      lane.desc = lane.sub;
-    }
-    lanes.push(lane);
-    laneById.set(id, lane);
-  });
+    const items = [];                  // the paragraphs, tables and figures, in document order
+    const itemById = new Map();
+    listOf(source.paragraphs).forEach(function (entry) {
+      if (!isObject(entry) || entry.id === undefined || entry.id === null) return;
+      const id = String(entry.id);
+      if (itemById.has(id)) return;
+      const item = {
+        id: id,
+        index: items.length,
+        kind: entry.kind === "table" || entry.kind === "figure" ? entry.kind : "paragraph",
+        section: asText(entry.section),
+        text: entry.text,
+        role: asText(entry.role),
+        label: asText(entry.label),
+        evidence: entry.evidence,
+        lanes: isObject(entry.lanes) ? entry.lanes : {},
+      };
+      items.push(item);
+      itemById.set(id, item);
+    });
 
-  const questions = listOf(data.questions).filter(isObject).map(function (raw) {
-    return { id: asText(raw.id), text: asText(raw.text) };
-  });
-  const sections = listOf(data.sections).filter(isObject).map(function (raw) {
-    return {
-      id: asText(raw.id),
-      short: asText(raw.short),
-      title: asText(raw.title),
-      inferred: raw.inferred === true,
-      first: asText(raw.first),
-      last: asText(raw.last),
-      conclusion: asText(raw.conclusion),
-      baton: asText(raw.baton),
-      answers: listOf(raw.answers).map(asText),
+    const lanes = [];                  // the threads, in the order of the analysis
+    const laneById = new Map();
+    listOf(source.lanes).forEach(function (entry) {
+      if (!isObject(entry) || entry.id === undefined || entry.id === null) return;
+      const id = String(entry.id);
+      if (laneById.has(id)) return;
+      const kind = entry.kind === "question" || entry.kind === "concept" ? entry.kind : "";
+      const lane = {
+        id: id,
+        kind: kind,
+        label: asText(entry.label) || id,
+        sub: asText(entry.sub),
+        question: asText(entry.question),
+        hue: HUES[kind] || NEUTRAL_HUE,
+      };
+      // A question thread goes by its question (Q1) and then its label; a concept thread by its
+      // label and then its sub-label, as the approved layout names them.
+      if (kind === "question" && lane.question) {
+        lane.name = lane.question;
+        lane.desc = lane.label !== lane.question ? lane.label : lane.sub;
+      } else {
+        lane.name = lane.label;
+        lane.desc = lane.sub;
+      }
+      lanes.push(lane);
+      laneById.set(id, lane);
+    });
+
+    const questions = listOf(source.questions).filter(isObject).map(function (entry) {
+      return { id: asText(entry.id), text: asText(entry.text) };
+    });
+    const sections = listOf(source.sections).filter(isObject).map(function (entry) {
+      return {
+        id: asText(entry.id),
+        short: asText(entry.short),
+        title: asText(entry.title),
+        inferred: entry.inferred === true,
+        first: asText(entry.first),
+        last: asText(entry.last),
+        conclusion: asText(entry.conclusion),
+        baton: asText(entry.baton),
+        answers: listOf(entry.answers).map(asText),
+      };
+    });
+    const sectionById = new Map(sections.map(function (section) { return [section.id, section]; }));
+    const model = {
+      items: items,
+      itemById: itemById,
+      lanes: lanes,
+      laneById: laneById,
+      questions: questions,
+      sections: sections,
+      sectionById: sectionById,
+      paragraphCount: items.filter(function (item) { return item.kind === "paragraph"; }).length,
     };
-  });
-  const sectionById = new Map(sections.map(function (section) { return [section.id, section]; }));
+    // build works the runs out (computed in vN.json); without them the page does, as tm_build does.
+    const computed = isObject(source.computed) ? source.computed : null;
+    model.runs = computed && isObject(computed.runs) ? computed.runs : computeRuns(model);
+    return model;
+  }
+
+  const now = modelOf(data);           // the version this page is of
+  // The comparison with an earlier version, when build made one: what differs, and the earlier
+  // version itself. One without that version has nothing to be compared with, and is left out.
+  const compare = isObject(data.compare) && isObject(data.compare.before) ? data.compare : null;
+  const before = compare && modelOf(compare.before);
   const cases = listOf(data.cases).filter(isObject).map(function (raw) {
     return { name: asText(raw.name), at: listOf(raw.at).map(asText), note: asText(raw.note) };
   });
   const gaps = listOf(data.gaps).filter(isObject).map(function (raw) {
     return { note: asText(raw.note), direction: asText(raw.direction) };
   });
-  const paragraphCount = items.filter(function (item) { return item.kind === "paragraph"; }).length;
   const hasVersion = typeof data.version === "number"
     || (typeof data.version === "string" && data.version !== "");
   const quoteLanguage = asText(essay.language) || null;   // quotes stay in the draft's language
@@ -733,9 +879,10 @@ document.addEventListener("DOMContentLoaded", function () {
     return weight === "major" || weight === "minor" ? t(weight) : asText(weight);
   }
   // How an id reads on the page: tables and figures take the prefix of the UI language (T1, 표1).
-  function shownId(id) {
+  // ``model`` is the version the id belongs to: this page's, or the earlier one of a comparison.
+  function shownId(id, model = now) {
     id = asText(id);
-    const item = itemById.get(id);
+    const item = model.itemById.get(id);
     let kind = item ? item.kind : "paragraph";
     if (!item && /^T\d/.test(id)) kind = "table";
     if (!item && /^F\d/.test(id)) kind = "figure";
@@ -743,9 +890,15 @@ document.addEventListener("DOMContentLoaded", function () {
     if (kind === "figure") return t("figure_prefix") + id.replace(/^F/, "");
     return id;
   }
-  function laneName(laneId) {
-    const lane = laneById.get(asText(laneId));
+  function laneName(laneId, model = now) {
+    const lane = model.laneById.get(asText(laneId));
     return lane ? lane.name : asText(laneId);
+  }
+  // Ids written one after another. ``show`` is shownId, or oldId for the ids of the earlier
+  // version. It is called with the id alone: ids.map(shownId) would hand shownId the index as a
+  // second argument, which it would take for a model.
+  function joinIds(ids, show, separator) {
+    return listOf(ids).map(function (id) { return show(id); }).join(separator);
   }
   function quoted(text) {
     return "“" + asText(text) + "”";
@@ -800,7 +953,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // The quotes that fail, per item: [{lane: lane id, or null for the evidence, quote}].
   const badQuotes = new Map();
-  items.forEach(function (item) {
+  now.items.forEach(function (item) {
     const bad = [];
     if (!containsVerbatim(item.text, item.evidence)) bad.push({ lane: null, quote: item.evidence });
     Object.keys(item.lanes).forEach(function (laneId) {
@@ -815,12 +968,12 @@ document.addEventListener("DOMContentLoaded", function () {
   // build works these out (computed in vN.json). A page that an agent filled in without Python
   // has none, so the page works them out the same way as tm_build does.
 
-  function computeRuns() {
+  function computeRuns(model) {
     const runs = {};
-    lanes.forEach(function (lane) {
+    model.lanes.forEach(function (lane) {
       const stretches = [];
       let stretch = null;
-      items.forEach(function (item) {
+      model.items.forEach(function (item) {
         if (!marks(item, lane.id)) {
           stretch = null;
           return;
@@ -842,16 +995,16 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function computeObservations() {
-    const paragraphs = items.filter(function (item) { return item.kind === "paragraph"; });
-    const markedLanes = lanes.map(function (lane) { return lane.id; }).filter(function (laneId) {
-      return items.some(function (item) { return marks(item, laneId); });
+    const paragraphs = now.items.filter(function (item) { return item.kind === "paragraph"; });
+    const markedLanes = now.lanes.map(function (lane) { return lane.id; }).filter(function (laneId) {
+      return now.items.some(function (item) { return marks(item, laneId); });
     });
     const shortest = Math.max(6, Math.ceil(0.25 * paragraphs.length));
     const found = [];
     markedLanes.forEach(function (laneId) {
       let lastMark = null;
       let resting = 0;
-      items.forEach(function (item) {
+      now.items.forEach(function (item) {
         if (marks(item, laneId)) {
           if (lastMark !== null && resting >= shortest) {
             found.push({ type: "quiet", lane: laneId, from: lastMark, to: item.id,
@@ -864,8 +1017,8 @@ document.addEventListener("DOMContentLoaded", function () {
         }
       });
     });
-    if (sections.length) {
-      const lastSection = sections[sections.length - 1].id;
+    if (now.sections.length) {
+      const lastSection = now.sections[now.sections.length - 1].id;
       const returning = new Set();
       paragraphs.forEach(function (item) {
         if (item.section !== lastSection) return;
@@ -884,7 +1037,6 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   const computed = isObject(data.computed) ? data.computed : null;
-  const runs = computed && isObject(computed.runs) ? computed.runs : computeRuns();
   const observations = computed && Array.isArray(computed.observations)
     ? computed.observations : computeObservations();
 
@@ -934,9 +1086,9 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   // A question is teal when a question thread follows it, purple when only concept threads do.
-  function questionHue(questionId) {
+  function questionHue(questionId, model) {
     const followedBy = function (kind) {
-      return lanes.some(function (lane) {
+      return model.lanes.some(function (lane) {
         return lane.kind === kind && lane.question === questionId;
       });
     };
@@ -958,7 +1110,7 @@ document.addEventListener("DOMContentLoaded", function () {
   function metaText() {
     const meta = [];
     if (essay.source) meta.push(asText(essay.source));
-    meta.push(counted("n_paragraphs", paragraphCount));
+    meta.push(counted("n_paragraphs", now.paragraphCount));
     if (typeof essay.word_count === "number") meta.push(counted("n_words", essay.word_count));
     if (hasVersion) meta.push(fill(t("version"), { v: data.version }));
     return meta.join(" · ");
@@ -967,10 +1119,10 @@ document.addEventListener("DOMContentLoaded", function () {
   // A question without a thread of its own is judged through the concept threads that help
   // answer it: "judged by A·B". "" for any other question.
   function judgedBy(question) {
-    const ownLane = lanes.some(function (lane) {
+    const ownLane = now.lanes.some(function (lane) {
       return lane.kind === "question" && lane.question === question.id;
     });
-    const helpers = lanes.filter(function (lane) {
+    const helpers = now.lanes.filter(function (lane) {
       return lane.kind === "concept" && lane.question === question.id;
     });
     if (ownLane || !helpers.length) return "";
@@ -994,11 +1146,12 @@ document.addEventListener("DOMContentLoaded", function () {
     setText("tm-thesis-text", thesis);
 
     const list = document.getElementById("tm-questions");
-    document.getElementById("tm-questions-block").hidden = !questions.length;
+    document.getElementById("tm-questions-block").hidden = !now.questions.length;
     setText("tm-questions-label", t("questions"));
-    questions.forEach(function (question) {
+    now.questions.forEach(function (question) {
       const entry = h("li", { "data-question": question.id }, [
-        dot(questionHue(question.id)), h("span", { class: "tm-q-id" }, question.id), question.text,
+        dot(questionHue(question.id, now)), h("span", { class: "tm-q-id" }, question.id),
+        question.text,
       ]);
       const note = judgedBy(question);
       if (note) entry.appendChild(h("span", { class: "tm-q-note" }, note));
@@ -1006,45 +1159,294 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
+  // --- What changed -------------------------------------------------------------------------
+  // build writes the comparison into the data (compare): the earlier version itself, and what
+  // differs between the two. The panel after the header says it in words, and an item's detail
+  // box says where that item came from. An id of the earlier version carries its version, as in
+  // "v1 P8", so that it is not taken for an id of this one. The comparison is read as
+  // defensively as the rest of the data.
+
+  function oldId(id) {
+    return "v" + asText(compare.against) + " " + shownId(id, before);
+  }
+
+  // The lines between the two maps: one for each pair of matched paragraphs, and one for each
+  // part of a split and each part of a merge ({old, new, kind, ratio, edited}, where kind is
+  // "pair", "split" or "merge", the ratio of a split or a merge is null and only a pair is edited).
+  // They run in the order of this version's items, then of the earlier one's. A line with an end
+  // on no map is left out.
+  function linksOf(changes) {
+    if (!isObject(changes) || !before) return [];
+    const found = [];
+    const add = function (old, current, kind, ratio, edited) {
+      found.push({
+        old: asText(old), new: asText(current), kind: kind, ratio: ratio, edited: edited === true,
+      });
+    };
+    listOf(changes.pairs).filter(isObject).forEach(function (pair) {
+      add(pair.old, pair.new, "pair", typeof pair.ratio === "number" ? pair.ratio : null,
+        pair.edited);
+    });
+    listOf(changes.splits).filter(isObject).forEach(function (split) {
+      listOf(split.new).forEach(function (part) { add(split.old, part, "split", null); });
+    });
+    listOf(changes.merges).filter(isObject).forEach(function (merge) {
+      listOf(merge.old).forEach(function (part) { add(part, merge.new, "merge", null); });
+    });
+    return found.filter(function (link) {
+      return now.itemById.has(link.new) && before.itemById.has(link.old);
+    }).sort(function (a, b) {
+      return now.itemById.get(a.new).index - now.itemById.get(b.new).index
+        || before.itemById.get(a.old).index - before.itemById.get(b.old).index;
+    });
+  }
+
+  // How closely the paragraphs of a pair match, in whole percent. build rounds the ratio to two
+  // decimals, so a long paragraph with one word changed has a ratio of 1; an edited pair is held
+  // at 99, so that it never reads 100 next to "Edited".
+  function matchPercent(link) {
+    const percent = Math.round(link.ratio * 100);
+    return link.edited ? Math.min(percent, 99) : percent;
+  }
+
+  function linksBy(links, end) {
+    const groups = new Map();
+    links.forEach(function (link) {
+      if (!groups.has(link[end])) groups.set(link[end], []);
+      groups.get(link[end]).push(link);
+    });
+    return groups;
+  }
+  const links = linksOf(compare);
+  const linksTo = linksBy(links, "new");   // this version's id -> the lines that end in it
+  const linksFrom = linksBy(links, "old"); // the earlier version's id -> the lines that start in it
+
+  // The panel's lines in the four groups under its headings, as [{title, lines: [{kind, text}]}],
+  // where kind is the line's data-change. A kind that the comparison has nothing for has no
+  // line. The edited, added and removed paragraphs, and the new and the dropped threads, are
+  // each listed on one line. Each split, merge, move, thread mark, quiet stretch and gap has a
+  // line of its own, so that an old id stays with the new one it became.
+  function changeGroups() {
+    const pairs = listOf(compare.pairs).filter(isObject);
+    const laneChanges = isObject(compare.lanes) ? compare.lanes : {};
+    const line = function (kind, key, values) {
+      return { kind: kind, text: fill(t(key), values) };
+    };
+    const nowIds = function (ids) { return joinIds(ids, shownId, ", "); };
+    const oldIds = function (ids) { return joinIds(ids, oldId, ", "); };
+    const nowLanes = function (ids) {
+      return joinIds(ids, function (id) { return laneName(id, now); }, ", ");
+    };
+    const oldLanes = function (ids) {
+      return joinIds(ids, function (id) { return laneName(id, before); }, ", ");
+    };
+
+    const paragraphs = [];
+    const edited = pairs.filter(function (pair) { return pair.edited === true; })
+      .map(function (pair) { return pair.new; });
+    if (edited.length) paragraphs.push(line("edited", "change_edited", { ids: nowIds(edited) }));
+    if (listOf(compare.added).length) {
+      paragraphs.push(line("added", "change_added", { ids: nowIds(compare.added) }));
+    }
+    if (listOf(compare.removed).length) {
+      paragraphs.push(line("removed", "change_removed", { ids: oldIds(compare.removed) }));
+    }
+    listOf(compare.splits).filter(isObject).forEach(function (split) {
+      paragraphs.push(line("split", "change_split",
+                           { old: oldId(split.old), new: nowIds(split.new) }));
+    });
+    listOf(compare.merges).filter(isObject).forEach(function (merge) {
+      paragraphs.push(line("merged", "change_merged",
+                           { old: oldIds(merge.old), new: shownId(merge.new) }));
+    });
+    pairs.filter(function (pair) { return pair.moved === true; }).forEach(function (pair) {
+      paragraphs.push(line("moved", "change_moved",
+                           { old: oldId(pair.old), new: shownId(pair.new) }));
+    });
+
+    // A thread mark gained is named by this version's threads, and one lost by the earlier
+    // version's: "+ Q1 · − Pace" (the sign is U+2212, the minus). The paragraph is named by
+    // its id in this version, then by its id in the earlier one when that differs.
+    const threads = [];
+    listOf(compare.marks).filter(isObject).forEach(function (mark) {
+      const gained = listOf(mark.gained).map(function (id) { return "+ " + laneName(id, now); });
+      const lost = listOf(mark.lost).map(function (id) {
+        return "\u2212 " + laneName(id, before);
+      });
+      if (!gained.length && !lost.length) return;
+      const paragraph = shownId(mark.new)
+        + (asText(mark.old) === asText(mark.new) ? "" : " (" + oldId(mark.old) + ")");
+      threads.push(line("marks", "change_marks", {
+        id: paragraph, marks: [gained.join(", "), lost.join(", ")].filter(Boolean).join(" · "),
+      }));
+    });
+    if (listOf(laneChanges.added).length) {
+      threads.push(line("thread-added", "change_thread_added",
+                        { lanes: nowLanes(laneChanges.added) }));
+    }
+    if (listOf(laneChanges.removed).length) {
+      threads.push(line("thread-removed", "change_thread_removed",
+                        { lanes: oldLanes(laneChanges.removed) }));
+    }
+
+    const quiet = [];
+    listOf(compare.quiet_closed).filter(isObject).forEach(function (stretch) {
+      quiet.push(line("quiet-closed", "change_quiet_closed", {
+        lane: laneName(stretch.lane, before), from: oldId(stretch.from), to: oldId(stretch.to),
+      }));
+    });
+    listOf(compare.quiet_opened).filter(isObject).forEach(function (stretch) {
+      quiet.push(line("quiet-opened", "change_quiet_opened", {
+        lane: laneName(stretch.lane, now), n: formatNumber(stretch.length),
+        from: shownId(stretch.from), to: shownId(stretch.to),
+      }));
+    });
+
+    const closed = [];
+    listOf(compare.gaps_closed).filter(isObject).forEach(function (gap) {
+      closed.push(line("gap", "change_gap", { note: asText(gap.note), at: oldIds(gap.at) }));
+    });
+
+    return [
+      { title: t("changes_paragraphs"), lines: paragraphs },
+      { title: t("threads"), lines: threads },
+      { title: t("changes_quiet"), lines: quiet },
+      { title: t("changes_gaps"), lines: closed },
+    ];
+  }
+
+  // The saved versions, each with its date and size and a note on the two the page is about:
+  // "v1 (2026-10-22, 8 paragraphs, compared) · v2 (…, this map)". A version that could not be
+  // read has no date to show, and is only named. "" when the comparison lists none.
+  function versionsText() {
+    const entries = [];
+    listOf(compare.versions).filter(isObject).forEach(function (entry) {
+      const number = asText(entry.version);
+      if (!number) return;
+      const details = [];
+      if (typeof entry.generated_at === "string") {
+        const date = Array.from(entry.generated_at).slice(0, 10).join("");
+        if (date) details.push(date);
+        if (typeof entry.paragraphs === "number") {
+          details.push(counted("n_paragraphs", entry.paragraphs));
+        }
+      }
+      if (number === asText(data.version)) details.push(t("version_this"));
+      else if (number === asText(compare.against)) details.push(t("version_compared"));
+      entries.push("v" + number + (details.length ? " (" + details.join(", ") + ")" : ""));
+    });
+    return entries.length ? fill(t("versions"), { list: entries.join(" · ") }) : "";
+  }
+
+  // The panel shows only when there is a comparison: a title, the changes in their groups (or
+  // one line saying there are none), and the list of saved versions.
+  function renderChanges() {
+    document.getElementById("tm-changes").hidden = !compare;
+    if (!compare) return;
+    setText("tm-changes-title", fill(t("changes_title"), { v: asText(compare.against) }));
+    const body = document.getElementById("tm-changes-body");
+    const groups = changeGroups().filter(function (group) { return group.lines.length > 0; });
+    if (!groups.length) {
+      body.appendChild(h("div", { class: "tm-change", "data-change": "none" }, t("changes_none")));
+    }
+    groups.forEach(function (group) {
+      body.appendChild(h("h3", { class: "tm-subhead" }, group.title));
+      group.lines.forEach(function (entry) {
+        body.appendChild(h("div", { class: "tm-change", "data-change": entry.kind }, entry.text));
+      });
+    });
+    const versions = versionsText();
+    setText("tm-versions", versions);
+    document.getElementById("tm-versions").hidden = !versions;
+  }
+
+  // Where an item of this version came from, for the foot of its detail box: "Before: v1 P3, 83%
+  // match", for a pair, with " · moved" when it moved; "Before: v1 P2, split into P2, P3"; "Before:
+  // v1 P5, v1 P6, merged into this one"; or "New since v1". "" for an item the comparison does
+  // not mention.
+  function originText(item) {
+    if (!compare) return "";
+    const own = linksTo.get(item.id);
+    if (!own) {
+      const isNew = listOf(compare.added).some(function (id) { return asText(id) === item.id; });
+      return isNew ? fill(t("detail_new"), { v: asText(compare.against) }) : "";
+    }
+    const link = own[0];
+    if (link.kind === "split") {
+      const parts = linksFrom.get(link.old).filter(function (other) {
+        return other.kind === "split";
+      });
+      return fill(t("detail_split"), {
+        old: oldId(link.old),
+        new: joinIds(parts.map(function (part) { return part.new; }), shownId, ", "),
+      });
+    }
+    if (link.kind === "merge") {
+      return fill(t("detail_merged"), {
+        old: joinIds(own.map(function (part) { return part.old; }), oldId, ", "),
+      });
+    }
+    if (link.ratio === null || !isFinite(link.ratio)) return "";
+    const said = fill(t("detail_pair"), { old: oldId(link.old), pct: matchPercent(link) });
+    const moved = listOf(compare.pairs).some(function (pair) {
+      return isObject(pair) && pair.moved === true && asText(pair.new) === item.id;
+    });
+    return moved ? said + " · " + t("detail_moved") : said;
+  }
+
   // --- Section flow -------------------------------------------------------------------------
 
   const roleButtons = new Map();       // item id -> its role button in the section cards
-  const itemsBySection = new Map(sections.map(function (section) { return [section.id, []]; }));
-  items.forEach(function (item) {
-    if (itemsBySection.has(item.section)) itemsBySection.get(item.section).push(item);
-  });
 
-  function rangeOf(section) {
-    if (!section.first) return "";
-    if (!section.last || section.last === section.first) return shownId(section.first);
-    return fill(t("range"), { first: shownId(section.first), last: shownId(section.last) });
+  // The items of ``model`` that belong to ``section``, in order.
+  function itemsOf(model, section) {
+    return model.items.filter(function (item) { return item.section === section.id; });
   }
 
-  function sectionHead(section) {
+  function rangeOf(section, model) {
+    if (!section.first) return "";
+    if (!section.last || section.last === section.first) return shownId(section.first, model);
+    return fill(t("range"), {
+      first: shownId(section.first, model), last: shownId(section.last, model),
+    });
+  }
+
+  function sectionHead(section, model) {
     const head = h("div", { class: "tm-sec-head" },
       h("span", { class: "tm-short" }, section.short || section.id));
-    const range = rangeOf(section);
+    const range = rangeOf(section, model);
     if (section.title && section.title !== section.short) append(head, " · " + section.title);
     if (range) append(head, " · " + range);
     if (section.inferred) append(head, h("span", { class: "tm-inferred" }, t("inferred")));
     return head;
   }
 
-  // Each role is a step that keeps its arrow to the next one, so a wrapped line ends in "→".
-  function roleSequence(section) {
+  // Each role is a step that keeps its arrow to the next one, so a wrapped line ends in "→". In
+  // this version the roles are buttons that find their paragraph on the map, and carry the
+  // warning for a quote that is not in the text; in the earlier version of a comparison they
+  // are only text.
+  function roleSequence(section, model, interactive) {
     const sequence = h("div", { class: "tm-seq" });
-    const sectionItems = itemsBySection.get(section.id);
+    const sectionItems = itemsOf(model, section);
     sectionItems.forEach(function (item, position) {
-      const button = h("button", {
-        class: "tm-role", "data-item": item.id, title: item.label || null, type: "button",
-        "aria-pressed": "false",
-      }, shownId(item.id) + " " + roleName(item.role));
-      button.addEventListener("click", function () { pressRole(item.id); });
-      roleButtons.set(item.id, button);
+      const text = shownId(item.id, model) + " " + roleName(item.role);
+      let role;
+      if (interactive) {
+        role = h("button", {
+          class: "tm-role", "data-item": item.id, title: item.label || null, type: "button",
+          "aria-pressed": "false",
+        }, text);
+        role.addEventListener("click", function () { pressRole(item.id); });
+        roleButtons.set(item.id, role);
+      } else {
+        role = h("span", {
+          class: "tm-role-before", "data-item": item.id, title: item.label || null,
+        }, text);
+      }
       const last = position === sectionItems.length - 1;
       sequence.appendChild(h("span", { class: "tm-step" }, [
-        button,
-        badQuotes.has(item.id) ? warnBadge(item.id) : null,
+        role,
+        interactive && badQuotes.has(item.id) ? warnBadge(item.id) : null,
         last ? null : h("span", { class: "tm-arrow", "aria-hidden": "true" }, " →"),
       ]));
       if (!last) append(sequence, " ");
@@ -1052,25 +1454,49 @@ document.addEventListener("DOMContentLoaded", function () {
     return sequence;
   }
 
+  // A section's card: its head, conclusion and roles on the left, the questions it answers on
+  // the right. ``number`` is the section's place among those of ``model``.
+  function sectionCard(section, number, model, interactive) {
+    const main = h("div", { class: "tm-sec-main" }, [
+      sectionHead(section, model),
+      section.conclusion ? h("div", { class: "tm-concl" }, section.conclusion) : null,
+      roleSequence(section, model, interactive),
+    ]);
+    const answers = h("div", { class: "tm-answers" }, section.answers.map(function (id) {
+      return h("span", { class: "tm-chip" }, [dot(questionHue(id, model)), id]);
+    }));
+    return h("div", {
+      class: interactive ? "tm-card" : "tm-card is-before", "data-section": section.id,
+    }, [main, answers]);
+  }
+
+  // The cards of ``model``, each but the last followed by the baton that hands on to the next.
+  function fillCards(container, model, interactive) {
+    model.sections.forEach(function (section, number) {
+      container.appendChild(sectionCard(section, number, model, interactive));
+      if (number < model.sections.length - 1 && section.baton) {
+        container.appendChild(h("div", { class: "tm-baton" }, "↓ " + section.baton));
+      }
+    });
+  }
+
+  // The head over a column or a map of a comparison: "Before · v1", "Now · v2".
+  function columnHead(key, version) {
+    return fill(t(key), { v: asText(version) });
+  }
+
+  // The cards of this version; with a comparison, the earlier version's too, side by side.
   function renderFlow() {
     setText("tm-flow-title", t("flow"));
     setText("tm-flow-hint", t("flow_hint"));
-    const cards = document.getElementById("tm-cards");
-    sections.forEach(function (section, number) {
-      const main = h("div", { class: "tm-sec-main" }, [
-        sectionHead(section),
-        section.conclusion ? h("div", { class: "tm-concl" }, section.conclusion) : null,
-        roleSequence(section),
-      ]);
-      const answers = h("div", { class: "tm-answers" }, section.answers.map(function (id) {
-        return h("span", { class: "tm-chip" }, [dot(questionHue(id)), id]);
-      }));
-      const card = h("div", { class: "tm-card", "data-section": section.id }, [main, answers]);
-      cards.appendChild(card);
-      if (number < sections.length - 1 && section.baton) {
-        cards.appendChild(h("div", { class: "tm-baton" }, "↓ " + section.baton));
-      }
-    });
+    fillCards(document.getElementById("tm-cards"), now, true);
+    document.getElementById("tm-flow-pair").classList.toggle("is-compare", !!compare);
+    if (!compare) return;
+    document.getElementById("tm-flow-before").hidden = false;
+    document.getElementById("tm-flow-now-head").hidden = false;
+    setText("tm-flow-before-head", columnHead("before_col", compare.against));
+    setText("tm-flow-now-head", columnHead("now_col", data.version));
+    fillCards(document.getElementById("tm-cards-before"), before, false);
   }
 
   // --- Thread map ---------------------------------------------------------------------------
@@ -1115,9 +1541,9 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   // Each run of consecutive items in the same section makes one band along the top.
-  function bandsOf() {
+  function bandsOf(model) {
     const bands = [];
-    items.forEach(function (item, index) {
+    model.items.forEach(function (item, index) {
       const last = bands[bands.length - 1];
       if (last && last.section === item.section) last.end = index;
       else bands.push({ section: item.section, start: index, end: index });
@@ -1131,55 +1557,62 @@ document.addEventListener("DOMContentLoaded", function () {
   }
   // What a column shows on the number row: the paragraph's number, or a table's prefix and
   // number, or only the prefix when the column is too narrow for both.
-  function columnLabel(item, width) {
+  function columnLabel(item, width, model) {
     if (item.kind === "paragraph") return /^P\d+$/.test(item.id) ? item.id.slice(1) : item.id;
-    const full = shownId(item.id);
+    const full = shownId(item.id, model);
     const fits = measure(full, "tm-num") * numberSize(width) / 11 <= width - 2;   // at 11px
     return fits ? full : t(item.kind === "table" ? "table_prefix" : "figure_prefix");
   }
 
-  function laneTitle(lane) {
+  function laneTitle(lane, model) {
     const parts = [lane.name];
     if (lane.desc) parts.push(lane.desc);
     if (lane.sub && lane.sub !== lane.desc) parts.push(lane.sub);
-    const question = questions.find(function (entry) { return entry.id === lane.question; });
+    const question = model.questions.find(function (entry) { return entry.id === lane.question; });
     const asked = question && question.text ? "\n" + question.id + " " + question.text : "";
     return parts.join(" · ") + asked;
   }
 
-  function markTitle(item, lane, mark) {
+  // ``called`` is how the item reads in the title: "P4", or "v1 P4" in the earlier version.
+  function markTitle(called, lane, mark) {
     const weight = isObject(mark) ? weightName(mark.weight) : "";
     const quote = isObject(mark) ? "\n" + quoted(mark.quote) : "";
-    return [shownId(item.id), lane.name, weight].filter(Boolean).join(" · ") + quote;
+    return [called, lane.name, weight].filter(Boolean).join(" · ") + quote;
   }
 
-  // Draw the thread map into ``svg``, given ``room`` pixels for all of it, the column of thread
-  // names included. Each column takes an equal share of what is left, 14 to 36 pixels.
-  function drawMap(svg, room) {
+  // Draw the thread map of ``model`` into ``svg``, given ``room`` pixels for all of it, the
+  // column of thread names included. Each column takes an equal share of what is left, 14 to 36
+  // pixels, as if the map had ``slots`` columns: the two maps of a comparison are drawn with the
+  // slots of the longer one, so that their columns line up. Returns the width of a column. The
+  // map of the earlier version is for looking at: its thread names are not buttons, and its
+  // columns say which paragraph they are.
+  function drawMap(svg, room, model = now, slots = model.items.length) {
     const L = LAYOUT;
-    const count = items.length;
-    const share = Math.floor((room - L.LABEL_W) / Math.max(count, 1) * 100) / 100;
+    const earlier = model === before;
+    const count = model.items.length;
+    const share = Math.floor((room - L.LABEL_W) / Math.max(slots, 1) * 100) / 100;
     const column = clamp(share, L.COL_MIN, L.COL_MAX);
     const width = L.LABEL_W + count * column;
     const numberY = L.BAND_H + 12;
     const laneY = function (row) { return numberY + L.LANE_GAP * (row + 1); };
-    const height = (lanes.length ? laneY(lanes.length - 1) : numberY) + 14;
+    const height = (model.lanes.length ? laneY(model.lanes.length - 1) : numberY) + 14;
     const left = function (index) { return L.LABEL_W + column * index; };
     const centre = function (index) { return left(index) + column / 2; };
     const indexOf = function (id) {
-      const item = itemById.get(asText(id));
+      const item = model.itemById.get(asText(id));
       return item ? item.index : -1;
     };
+    const called = function (item) { return earlier ? oldId(item.id) : shownId(item.id); };
 
     clear(svg);
     setAttributes(svg, {
       width: px(width), height: px(height), viewBox: "0 0 " + px(width) + " " + px(height),
     });
 
-    bandsOf().forEach(function (band, number) {
+    bandsOf(model).forEach(function (band, number) {
       const x = left(band.start);
       const bandWidth = column * (band.end - band.start + 1);
-      const section = sectionById.get(band.section);
+      const section = model.sectionById.get(band.section);
       const name = section ? section.short || section.id : band.section;
       const fit = fitText(name, bandWidth - 4, "tm-band");
       svg.appendChild(s("g", { class: "tm-bandg", "data-section": band.section }, [
@@ -1200,30 +1633,32 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     });
 
-    items.forEach(function (item, index) {
+    model.items.forEach(function (item, index) {
+      const title = [called(item), roleName(item.role), item.label].filter(Boolean).join(" · ");
       svg.appendChild(s("rect", {
         class: "tm-col", "data-item": item.id, x: px(left(index)), y: L.BAND_H + 2,
         width: px(column), height: px(height - L.BAND_H - 6),
-      }));
+      }, earlier ? s("title", null, title) : null));
     });
 
     svg.appendChild(s("text", {
       class: "tm-rowlabel", x: 6, y: numberY, "dominant-baseline": "central",
     }, t("para_row")));
-    items.forEach(function (item, index) {
+    model.items.forEach(function (item, index) {
       svg.appendChild(s("text", {
         class: "tm-num", "data-item": item.id, x: px(centre(index)), y: numberY,
         "text-anchor": "middle", "dominant-baseline": "central",
         style: "font-size:" + numberSize(column) + "px",
-      }, columnLabel(item, column)));
+      }, columnLabel(item, column, model)));
     });
 
-    lanes.forEach(function (lane, row) {
+    model.lanes.forEach(function (lane, row) {
       const y = laneY(row);
       svg.appendChild(threadName(lane, y));
       svg.appendChild(threadRow(lane, y));
     });
     stopMeasuring();
+    return column;
 
     // The name of a thread in the left column: its name in bold, then its description as far as
     // it fits. Clicking it isolates the thread.
@@ -1238,11 +1673,11 @@ document.addEventListener("DOMContentLoaded", function () {
         const descFit = fitText(lane.desc, descRoom, "tm-lname-desc");
         label.appendChild(s("tspan", { class: "tm-lname-desc", dx: 4 }, descFit.text));
       }
-      return s("g", {
+      return s("g", earlier ? { class: "tm-lname", "data-lane": lane.id } : {
         class: "tm-lname", "data-lane": lane.id, role: "button", tabindex: 0,
         "aria-pressed": "false",
       }, [
-        s("title", null, laneTitle(lane)),
+        s("title", null, laneTitle(lane, model)),
         s("rect", { class: "tm-lname-bg", x: 0, y: y - 11, width: L.LABEL_W - 6, height: 22,
                     rx: 4 }),
         label,
@@ -1259,7 +1694,7 @@ document.addEventListener("DOMContentLoaded", function () {
           stroke: lane.hue,
         });
       };
-      const run = isObject(runs[lane.id]) ? runs[lane.id] : null;
+      const run = isObject(model.runs[lane.id]) ? model.runs[lane.id] : null;
       const span = run ? listOf(run.span) : [];
       if (span.length === 2 && indexOf(span[0]) >= 0 && indexOf(span[1]) > indexOf(span[0])) {
         group.appendChild(line("tm-span", indexOf(span[0]), indexOf(span[1])));
@@ -1270,22 +1705,89 @@ document.addEventListener("DOMContentLoaded", function () {
         const to = indexOf(stretch[stretch.length - 1]);
         if (from >= 0 && to > from) group.appendChild(line("tm-run", from, to));
       });
-      items.forEach(function (item, index) {
+      model.items.forEach(function (item, index) {
         if (!marks(item, lane.id)) return;
         const mark = item.lanes[lane.id];
         const weight = isObject(mark) ? asText(mark.weight) : "";
         group.appendChild(s("circle", {
           class: "tm-mark", "data-item": item.id, "data-lane": lane.id, "data-weight": weight,
           cx: px(centre(index)), cy: y, r: weight === "major" ? L.MARK_R.major : L.MARK_R.minor,
-        }, s("title", null, markTitle(item, lane, mark))));
+        }, s("title", null, markTitle(called(item), lane, mark))));
       });
       return group;
     }
   }
 
+  // The hover text of a line between the maps: "v1 P3 → P7 · 83% match" for a pair; for a part
+  // of a split or a merge, the two ids and the word for it.
+  function linkTitle(link) {
+    const old = oldId(link.old);
+    const current = shownId(link.new);
+    if (link.kind === "pair" && link.ratio !== null && isFinite(link.ratio)) {
+      return fill(t("link_title"), { old: old, new: current, pct: matchPercent(link) });
+    }
+    const word = { split: "badge_split", merge: "badge_merged" }[link.kind];
+    return old + " → " + current + (word ? " · " + t(word) : "");
+  }
+
+  // The strip between the two maps of a comparison, ``column`` pixels to a column: a thin line
+  // from each paragraph of the earlier version to the one it became, and a badge for each
+  // paragraph that was added, removed, split or merged. The badge of a removed or split
+  // paragraph (− and ÷) hangs under the earlier map, that of a new or merged one (+ and ∪) stands
+  // over this one.
+  function drawLinks(svg, column) {
+    const L = LAYOUT;
+    const width = L.LABEL_W + Math.max(before.items.length, now.items.length) * column;
+    const centre = function (item) { return px(L.LABEL_W + column * (item.index + 0.5)); };
+    clear(svg);
+    setAttributes(svg, {
+      width: px(width), height: L.LINKS_H, viewBox: "0 0 " + px(width) + " " + L.LINKS_H,
+    });
+    links.forEach(function (link) {
+      const ends = {
+        x1: centre(before.itemById.get(link.old)), y1: L.LINKS_Y.from,
+        x2: centre(now.itemById.get(link.new)), y2: L.LINKS_Y.to,
+      };
+      // A line 1 px wide is hard to point at, so a wide invisible one lies over it for the hover.
+      svg.appendChild(s("g", {
+        class: "tm-link", "data-old": link.old, "data-new": link.new, "data-kind": link.kind,
+      }, [
+        s("title", null, linkTitle(link)),
+        s("line", ends),
+        s("line", Object.assign({ class: "tm-hit" }, ends)),
+      ]));
+    });
+    const idsOf = function (entries, key) {
+      return listOf(entries).filter(isObject).map(function (entry) { return entry[key]; });
+    };
+    [
+      { kind: "added", ids: listOf(compare.added), model: now },
+      { kind: "removed", ids: listOf(compare.removed), model: before },
+      { kind: "split", ids: idsOf(compare.splits, "old"), model: before },
+      { kind: "merged", ids: idsOf(compare.merges, "new"), model: now },
+    ].forEach(function (badge) {
+      const earlier = badge.model === before;
+      badge.ids.map(asText).forEach(function (id) {
+        if (!badge.model.itemById.has(id)) return;
+        const called = earlier ? oldId(id) : shownId(id);
+        svg.appendChild(s("text", {
+          class: "tm-badge", "data-badge": badge.kind, "data-item": id,
+          "data-side": earlier ? "before" : "now", x: centre(badge.model.itemById.get(id)),
+          y: earlier ? L.LINKS_Y.before : L.LINKS_Y.now, "text-anchor": "middle",
+          "dominant-baseline": "central",
+        }, [
+          s("title", null, called + " · " + t("badge_" + badge.kind)),
+          BADGE_GLYPHS[badge.kind],
+        ]));
+      });
+    });
+  }
+
   // --- What is selected, and the detail box --------------------------------------------------
 
   const map = document.getElementById("tm-map");
+  const beforeMap = document.getElementById("tm-map-before");   // shown with a comparison only
+  const linksMap = document.getElementById("tm-links");         // the lines between the two maps
   const mapScroll = document.getElementById("tm-map-scroll");
   const detail = document.getElementById("tm-detail");
   const caseButtons = [];
@@ -1295,14 +1797,14 @@ document.addEventListener("DOMContentLoaded", function () {
   let drawnRoom = -1;
 
   function shown() {
-    if (preview !== null && itemById.has(preview)) return { type: "item", id: preview };
+    if (preview !== null && now.itemById.has(preview)) return { type: "item", id: preview };
     return pinned;
   }
   function litItems() {
-    const now = shown();
-    if (!now) return new Set();
-    if (now.type === "item") return new Set([now.id]);
-    return new Set(cases[now.index] ? cases[now.index].at : []);
+    const current = shown();
+    if (!current) return new Set();
+    if (current.type === "item") return new Set([current.id]);
+    return new Set(cases[current.index] ? cases[current.index].at : []);
   }
   function isPinned(type, key) {
     return !!pinned && pinned.type === type && (type === "item" ? pinned.id : pinned.index) === key;
@@ -1314,13 +1816,27 @@ document.addEventListener("DOMContentLoaded", function () {
       node.classList.toggle("is-sel", lit.has(node.getAttribute("data-item")));
     });
     map.querySelectorAll(".tm-num").forEach(function (node) {
-      const item = itemById.get(node.getAttribute("data-item"));
+      const item = now.itemById.get(node.getAttribute("data-item"));
       node.classList.toggle("is-sel", lit.has(item.id));
       node.classList.toggle("is-faint", isolated !== null && !marks(item, isolated));
     });
-    map.querySelectorAll(".tm-lane").forEach(function (node) {
-      const other = isolated !== null && node.getAttribute("data-lane") !== isolated;
-      node.classList.toggle("is-dim", other);
+    [map, beforeMap].forEach(function (svg) {
+      svg.querySelectorAll(".tm-lane").forEach(function (node) {
+        const other = isolated !== null && node.getAttribute("data-lane") !== isolated;
+        node.classList.toggle("is-dim", other);
+      });
+    });
+    // In a comparison, the columns of the earlier map that the lit items came from, and the lines
+    // that end in them.
+    const origins = new Set();
+    lit.forEach(function (id) {
+      (linksTo.get(id) || []).forEach(function (link) { origins.add(link.old); });
+    });
+    beforeMap.querySelectorAll(".tm-col").forEach(function (node) {
+      node.classList.toggle("is-sel", origins.has(node.getAttribute("data-item")));
+    });
+    linksMap.querySelectorAll(".tm-link").forEach(function (node) {
+      node.classList.toggle("is-sel", lit.has(node.getAttribute("data-new")));
     });
     map.querySelectorAll(".tm-lname").forEach(function (node) {
       node.setAttribute("aria-pressed", String(node.getAttribute("data-lane") === isolated));
@@ -1334,30 +1850,30 @@ document.addEventListener("DOMContentLoaded", function () {
     renderDetail(shown());
   }
 
-  function renderDetail(now) {
+  function renderDetail(current) {
     clear(detail);
     detail.removeAttribute("data-item");
-    detail.classList.toggle("is-empty", !now);
-    if (!now) {
+    detail.classList.toggle("is-empty", !current);
+    if (!current) {
       append(detail, t("detail_hint"));
-    } else if (now.type === "case") {
-      const entry = cases[now.index];
+    } else if (current.type === "case") {
+      const entry = cases[current.index];
       append(detail, [
-        h("div", null, [h("strong", null, entry.name), " · " + entry.at.map(shownId).join(" → ")]),
+        h("div", null, [h("strong", null, entry.name), " · " + joinIds(entry.at, shownId, " → ")]),
         entry.note ? h("div", { class: "tm-detail-note" }, entry.note) : null,
       ]);
     } else {
-      renderItemDetail(itemById.get(now.id));
+      renderItemDetail(now.itemById.get(current.id));
     }
   }
 
-  // An item in the detail box: its id, role and label, the evidence, the threads it is on, and
-  // the quotes that the check could not find in it.
+  // An item in the detail box: its id, role and label, the evidence, the threads it is on, the
+  // quotes that the check could not find in it, and, in a comparison, where it came from.
   function renderItemDetail(item) {
     detail.setAttribute("data-item", item.id);
     const head = [roleName(item.role), item.label].filter(Boolean).join(" · ");
     const threads = h("div", { class: "tm-detail-threads" }, t("threads") + ": ");
-    const marked = lanes.filter(function (lane) { return marks(item, lane.id); });
+    const marked = now.lanes.filter(function (lane) { return marks(item, lane.id); });
     if (!marked.length) append(threads, t("none"));
     marked.forEach(function (lane, position) {
       const mark = item.lanes[lane.id];
@@ -1379,17 +1895,19 @@ document.addEventListener("DOMContentLoaded", function () {
       const note = t("warn_quote") + ": " + failed.join(" · ");
       detail.appendChild(h("div", { class: "tm-warn-note" }, note));
     }
+    const origin = originText(item);
+    if (origin) detail.appendChild(h("div", { class: "tm-detail-before" }, origin));
   }
 
   function select(id) {
     const key = id === null || id === undefined ? null : String(id);
-    pinned = key !== null && itemById.has(key) ? { type: "item", id: key } : null;
+    pinned = key !== null && now.itemById.has(key) ? { type: "item", id: key } : null;
     preview = null;
     applyState();
   }
   function isolateLane(id) {
     const key = id === null || id === undefined ? null : String(id);
-    isolated = key !== null && laneById.has(key) ? key : null;
+    isolated = key !== null && now.laneById.has(key) ? key : null;
     applyState();
   }
 
@@ -1435,10 +1953,36 @@ document.addEventListener("DOMContentLoaded", function () {
     isolateLane(isolated === id ? null : id);
   }
 
+  // With a comparison, the earlier map, the strip of lines and the heads and legend that go with
+  // them show too. An svg element has no hidden property, so its attribute is taken off.
+  function showComparisonMap() {
+    const heads = { before: columnHead("before_col", compare.against),
+                    now: columnHead("now_col", data.version) };
+    setText("tm-compare-legend", t("compare_legend"));
+    setText("tm-map-before-head", heads.before);
+    setText("tm-map-now-head", heads.now);
+    ["tm-compare-legend", "tm-map-before-head", "tm-map-now-head"].forEach(function (id) {
+      document.getElementById(id).hidden = false;
+    });
+    beforeMap.removeAttribute("hidden");
+    linksMap.removeAttribute("hidden");
+    beforeMap.setAttribute("aria-label", t("map") + " · " + heads.before);
+    map.setAttribute("aria-label", t("map") + " · " + heads.now);
+    // A click on a column of the earlier map selects the paragraph it became, the first of them
+    // for one that was split. One that was removed becomes nothing, and so selects nothing.
+    beforeMap.addEventListener("click", function (event) {
+      const target = event.target.closest("[data-item]");
+      if (!target) return;
+      const own = linksFrom.get(target.getAttribute("data-item"));
+      select(own ? own[0].new : null);
+    });
+  }
+
   function renderMapPanel() {
     setText("tm-map-title", t("map"));
     setText("tm-map-legend", t("map_legend"));
     map.setAttribute("aria-label", t("map"));
+    if (compare) showComparisonMap();
     map.addEventListener("mouseover", function (event) {
       const target = event.target.closest("[data-item]");
       if (!target || preview === target.getAttribute("data-item")) return;
@@ -1470,21 +2014,35 @@ document.addEventListener("DOMContentLoaded", function () {
     const room = Math.min(mapScroll.clientWidth, LAYOUT.CONTENT_MAX);
     if (room === drawnRoom) return;
     drawnRoom = room;
-    drawMap(map, room);
+    if (before) {
+      // Both maps and the strip between them take the columns of the longer map, so that their
+      // columns line up and they scroll together.
+      const slots = Math.max(before.items.length, now.items.length);
+      const column = drawMap(map, room, now, slots);
+      drawMap(beforeMap, room, before, slots);
+      drawLinks(linksMap, column);
+      [[map, now], [beforeMap, before]].forEach(function (pair) {   // for the print style sheet
+        const share = (LAYOUT.LABEL_W + pair[1].items.length * column)
+          / (LAYOUT.LABEL_W + slots * column);
+        pair[0].style.setProperty("--share", String(Math.round(share * 1000) / 1000));
+      });
+    } else {
+      drawMap(map, room);
+    }
     applyState();
   }
 
   // --- The list of all paragraphs -----------------------------------------------------------
 
   function renderList() {
-    const extra = items.filter(function (item) { return item.kind !== "paragraph"; })
+    const extra = now.items.filter(function (item) { return item.kind !== "paragraph"; })
       .map(function (item) { return shownId(item.id); });
     const count = extra.length
-      ? counted("list_count_and", paragraphCount, { extra: extra.join(", ") })
-      : counted("list_count", paragraphCount);
+      ? counted("list_count_and", now.paragraphCount, { extra: extra.join(", ") })
+      : counted("list_count", now.paragraphCount);
     setText("tm-list-summary", t("list_toggle") + " · " + count);
     const rows = document.getElementById("tm-rows");
-    items.forEach(function (item) { rows.appendChild(listRow(item)); });
+    now.items.forEach(function (item) { rows.appendChild(listRow(item)); });
   }
 
   // A row of the list: id, role, label, the evidence, and each thread mark with its quote. A
@@ -1509,7 +2067,7 @@ document.addEventListener("DOMContentLoaded", function () {
       h("div", { class: failed(null) ? "tm-row-quote is-bad" : "tm-row-quote" },
         quote(item.evidence, null)),
     ]);
-    lanes.forEach(function (lane) {
+    now.lanes.forEach(function (lane) {
       if (!marks(item, lane.id)) return;
       const mark = isObject(item.lanes[lane.id]) ? item.lanes[lane.id] : {};
       row.appendChild(h("div", { class: failed(lane.id) ? "tm-row-mark is-bad" : "tm-row-mark" }, [
@@ -1533,7 +2091,7 @@ document.addEventListener("DOMContentLoaded", function () {
         title: entry.note || null, "aria-pressed": "false",
       }, [
         h("span", { class: "tm-case-name" }, entry.name),
-        " · " + entry.at.map(shownId).join(" → "),
+        " · " + joinIds(entry.at, shownId, " → "),
       ]);
       button.addEventListener("click", function () { pressCase(index); });
       caseButtons.push(button);
@@ -1556,7 +2114,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
     if (observation.type === "unthreaded") {
       const at = Array.isArray(observation.at) ? observation.at : [observation.at];
-      return fill(t("obs_unthreaded"), { at: at.map(shownId).join(", ") });
+      return fill(t("obs_unthreaded"), { at: joinIds(at, shownId, ", ") });
     }
     return "";
   }
@@ -1811,9 +2369,9 @@ document.addEventListener("DOMContentLoaded", function () {
         x: left, y: px(start), width: 2, height: px(y - start), fill: POSTER.BORDER,
       }));
     }
-    if (questions.length) {
+    if (now.questions.length) {
       y += 12 + drawText(svg, t("questions"), "tm-p-label", left, y + 12, POSTER_CONTENT) + 2;
-      questions.forEach(function (question) { y += posterQuestion(svg, question, left, y) + 2; });
+      now.questions.forEach(function (question) { y += posterQuestion(svg, question, left, y) + 2; });
     }
     return y;
   }
@@ -1825,7 +2383,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const textLeft = left + 14 + measure(question.id, "tm-p-qid") + 6;
     svg.appendChild(s("circle", {
       class: "tm-p-dot", cx: left + 4, cy: px(top + line / 2), r: 4,
-      fill: questionHue(question.id),
+      fill: questionHue(question.id, now),
     }));
     svg.appendChild(posterText(question.id, "tm-p-qid", left + 14, top + line / 2));
     const layout = layoutRuns([
@@ -1837,11 +2395,11 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // The section cards, joined by their batons.
   function posterFlow(svg, top) {
-    if (!sections.length) return top;
+    if (!now.sections.length) return top;
     let y = posterPanel(svg, top, t("flow"));
-    sections.forEach(function (section, number) {
+    now.sections.forEach(function (section, number) {
       y = posterCard(svg, section, y);
-      if (number === sections.length - 1) return;
+      if (number === now.sections.length - 1) return;
       if (section.baton) {
         y += 5 + drawText(svg, "↓ " + section.baton, "tm-p-baton", POSTER.PAD + 18, y + 5,
                           POSTER_CONTENT - 18) + 5;
@@ -1874,7 +2432,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const headLine = POSTER_TEXT["tm-p-sechead"].line;
     let y = top + CARD.PAD_Y;
 
-    const rest = [section.title !== section.short ? section.title : "", rangeOf(section)]
+    const rest = [section.title !== section.short ? section.title : "", rangeOf(section, now)]
       .filter(Boolean).join(" · ");
     const head = layoutRuns([
       { text: section.short || section.id, className: "tm-p-short" },
@@ -1912,7 +2470,7 @@ document.addEventListener("DOMContentLoaded", function () {
       const middle = chipTop + CARD.CHIP_H / 2;
       card.appendChild(s("g", { class: "tm-p-answer" }, [
         posterBox(x, chipTop, chip.width, CARD.CHIP_H, "none", 5),
-        s("circle", { cx: px(x + 12), cy: px(middle), r: 4, fill: questionHue(chip.id) }),
+        s("circle", { cx: px(x + 12), cy: px(middle), r: 4, fill: questionHue(chip.id, now) }),
         posterText(chip.id, "tm-p-chip", x + 21, middle),
       ]));
       x += chip.width + 6;
@@ -1923,7 +2481,7 @@ document.addEventListener("DOMContentLoaded", function () {
   // A section's items as chips with their roles, "P1 Problem → P2 Claim", in rows that wrap;
   // a chip that would not fit even a row of its own is cut short. Returns the height they take.
   function posterSequence(card, section, left, top, room) {
-    const sectionItems = itemsBySection.get(section.id) || [];
+    const sectionItems = itemsOf(now, section);
     const arrow = measure("→", "tm-p-arrow");
     const steps = sectionItems.map(function (item, position) {
       const last = position === sectionItems.length - 1;
@@ -1984,7 +2542,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const padY = 4;
     const line = POSTER_TEXT["tm-p-case"].line;
     const chips = cases.map(function (entry) {
-      const places = entry.at.map(shownId).join(" → ");
+      const places = joinIds(entry.at, shownId, " → ");
       const layout = layoutRuns([
         { text: entry.name, className: "tm-p-casename" },
         { text: places ? "· " + places : "", className: "tm-p-case" },
@@ -2188,8 +2746,8 @@ document.addEventListener("DOMContentLoaded", function () {
   function applyHash() {
     const found = readHash();
     showPoster(has(found, "poster"));
-    isolated = has(found, "lane") && laneById.has(found.lane) ? found.lane : null;
-    const selected = has(found, "select") && itemById.has(found.select);
+    isolated = has(found, "lane") && now.laneById.has(found.lane) ? found.lane : null;
+    const selected = has(found, "select") && now.itemById.has(found.select);
     pinned = selected ? { type: "item", id: found.select } : null;
     preview = null;
     applyState();
@@ -2251,6 +2809,7 @@ document.addEventListener("DOMContentLoaded", function () {
   window.throughmap = api;
 
   renderHeader();
+  renderChanges();
   renderFlow();
   renderMapPanel();
   renderList();

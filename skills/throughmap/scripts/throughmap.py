@@ -3,12 +3,15 @@
     python throughmap.py extract INPUT [--name NAME] [--out DIR] [--section S] [--keep-short]
                                        [--join A,B] [--split ID TEXT] [--drop ID]
     python throughmap.py check DRAFT
-    python throughmap.py build DRAFT
+    python throughmap.py build DRAFT [--compare vK]
     python throughmap.py versions OUT
 
+build compares the new version with the latest saved one, or with the saved version vK that
+--compare names, and says what changed.
+
 Exit status: 0 on success; 1 when a correction or the choice of section does not fit the draft, no
-paragraph is left to map, or check or build finds errors in the analysis; 2 for a usage error or an
-input that cannot be read.
+paragraph is left to map, check or build finds errors in the analysis, or a --compare names no
+usable version; 2 for a usage error or an input that cannot be read.
 """
 
 from __future__ import annotations
@@ -16,10 +19,12 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import sys
 
 from tm_build import SOURCE_FILE, BuildError, build, list_versions
 from tm_check import check_files, format_report
+from tm_compare import CompareError
 from tm_extract import read_markdown
 from tm_source import (
     CorrectionError, apply_corrections, assemble_source, extract_path, resolve_out_dir,
@@ -29,6 +34,8 @@ from tm_source import (
 PARAGRAPH_LIMIT = 40  # the most paragraphs one map holds; check enforces the same limit
 EXIT_OK, EXIT_FAILED, EXIT_USAGE = 0, 1, 2
 _SEPARATOR = " \N{MIDDLE DOT} "
+# The number of a saved version: no leading zero, and at most 9 digits like the vN.json files.
+_VERSION_ARG = re.compile(r"[vV]?([1-9][0-9]{0,8})")
 
 
 def _use_utf8_streams() -> None:
@@ -148,7 +155,7 @@ def _run_check(args: argparse.Namespace) -> int:
 
 def _run_build(args: argparse.Namespace) -> int:
     try:
-        result = build(args.draft)
+        result = build(args.draft, compare_with=args.compare)
     except BuildError as error:   # the same report check prints; nothing was written
         print(error)
         return EXIT_FAILED
@@ -177,6 +184,15 @@ def _join_pair(value: str) -> tuple[str, str]:
         raise argparse.ArgumentTypeError(
             f"expected two paragraph ids with a comma between them, like P3,P4 (got {value!r})")
     return first, second
+
+
+def _version_arg(value: str) -> int:
+    """Read the number of a saved version from ``v2``, ``V2`` or ``2``."""
+    match = _VERSION_ARG.fullmatch(value)
+    if match is None:
+        raise argparse.ArgumentTypeError(
+            f"expected the number of a saved version, like v2 or 2 (got {value!r})")
+    return int(match.group(1))
 
 
 def _add_extract(commands) -> None:
@@ -231,11 +247,17 @@ def _add_build(commands) -> None:
         "build", help="save an analysis (draft.json) as the next version and write the page",
         description="Check the analysis as check does. When it has no errors, save it as the next "
                     "version (vN.json, with the computed runs and observations) and write "
-                    "index.html beside it, then print a short summary. Nothing is written when "
-                    "check finds errors, and a saved version is never overwritten.")
+                    "index.html beside it, then print a short summary. When the folder already "
+                    "holds a version, the new one is compared with the latest (or with the one "
+                    "--compare names) and the summary says what changed. Nothing is written when "
+                    "check finds errors or --compare names no usable version, and a saved version "
+                    "is never overwritten.")
     build_command.add_argument(
         "draft", metavar="DRAFT",
         help="the analysis, draft.json; source.json is read from its folder")
+    build_command.add_argument(
+        "--compare", metavar="vK", type=_version_arg,
+        help="compare with the saved version vK (v2, V2 or 2) instead of the latest")
     build_command.set_defaults(run=_run_build)
 
 
@@ -253,8 +275,8 @@ def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="throughmap.py", description="Map the structure of an essay.",
         epilog="exit status: 0 success; 1 a correction or section choice does not fit the draft, "
-               "no paragraph is left to map, or check or build finds errors in the analysis; "
-               "2 usage error or unreadable input")
+               "no paragraph is left to map, check or build finds errors in the analysis, or a "
+               "--compare names no usable version; 2 usage error or unreadable input")
     commands = parser.add_subparsers(dest="command", required=True, metavar="command")
     _add_extract(commands)
     _add_check(commands)
@@ -272,7 +294,7 @@ def main(argv: list[str] | None = None) -> int:
         return stop.code if isinstance(stop.code, int) else EXIT_USAGE
     try:
         return args.run(args)
-    except CorrectionError as error:
+    except (CorrectionError, CompareError) as error:   # both are ValueErrors, so they go first
         print(f"error: {error}", file=sys.stderr)
         return EXIT_FAILED
     except (ValueError, OSError) as error:

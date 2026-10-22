@@ -1,9 +1,9 @@
 ---
 name: throughmap
-description: "Map the flow of an essay, report or article draft as a one-page offline infographic: section conclusions, paragraph roles, threads, recurring examples and gaps. Use when someone asks to map, visualize or check a draft's structure or argument (구조 지도, 흐름 점검, 문단 역할) or to check a draft before submitting it. Analysis only; it never rewrites the writing."
+description: "Map the flow of an essay, report or article draft as a one-page offline infographic: section conclusions, paragraph roles, threads, recurring examples and gaps. Use when someone asks to map, visualize or check a draft's structure or argument (구조 지도, 흐름 점검, 문단 역할), to compare a revised draft with an earlier one, or to check a draft before submitting it. Analysis only; it never rewrites the writing."
 license: MIT
 metadata:
-  version: "0.1.1"
+  version: "0.2.0"
   homepage: "https://github.com/LucasKSJang/writing-throughmap"
 ---
 
@@ -19,6 +19,7 @@ Everything goes into `<out>`, the folder `<draft name>.throughmap` beside the dr
 - `vN.json`: every built version (`v1.json`, `v2.json`, ...), kept. `index.html` shows the latest.
 - `source.json`, the numbered paragraphs that `extract` writes, and `draft.json`, the analysis you write.
 - A four-line summary in the terminal.
+- From the second version on, `index.html` also shows what changed since an earlier version, and the summary gets a line that says it.
 
 ## When to use it, and when not to
 
@@ -26,7 +27,7 @@ Use it on a complete draft of thesis-driven writing (an essay, report, article, 
 
 - **Narrative or personal essays** (a story or memoir told in sequence rather than a position argued): tell the user that the map is designed for argumentative writing and ask whether to go on. Continue only when they say yes, even if they asked you to just draw it. When no one can answer, stop there.
 - **Rewriting, polishing, grammar, spelling, citations and style** are outside this skill. If the user asks for a rewrite, finish the map first, then treat the rewrite as an ordinary request.
-- **Comparing two drafts** is not in this version. Map the new draft; the earlier maps stay in `<out>`, and `versions` lists them.
+- **Comparing two drafts**: the comparison works between versions of one map, in one `<out>`. Map the revised draft as the next version of the earlier one's map (see the end of "Procedure"); when the earlier draft has no map yet, map it first.
 
 ### Limits
 
@@ -43,10 +44,10 @@ Use it on a complete draft of thesis-driven writing (an essay, report, article, 
 |---|---|
 | `extract INPUT [--name NAME] [--out DIR] [--section S] [--keep-short] [--join A,B] [--split ID TEXT] [--drop ID]` | Numbers the draft's paragraphs into `<out>/source.json` and prints a summary. `--join`, `--split` and `--drop` can be repeated. |
 | `check DRAFT` | Checks the analysis against the `source.json` beside it. Prints `ERROR` and `WARN` lines, each with the JSON path at fault, or `OK`. |
-| `build DRAFT` | Checks again. On errors, prints the same report as `check` and writes nothing. Otherwise saves `vN.json`, writes `index.html` and prints the summary, without the warnings. |
+| `build DRAFT [--compare vK]` | Checks again. On errors, prints the same report as `check` and writes nothing. Otherwise saves `vN.json`, writes `index.html` and prints the summary, without the warnings. When `<out>` already holds a version, it compares the new one with the latest, or with `vK`. |
 | `versions OUT` | Lists the saved versions with their build times and paragraph counts. |
 
-Exit status 0 means success. 1 means failure: `check` or `build` found errors, a correction does not fit the draft, `--section` names no section (or the draft has no section headings), or no paragraph is left to map. 2 means a usage error or an input that cannot be read.
+Exit status 0 means success. 1 means failure: `check` or `build` found errors, a correction does not fit the draft, `--section` names no section (or the draft has no section headings), `--compare` names no saved version (or one that cannot be read), or no paragraph is left to map. 2 means a usage error or an input that cannot be read.
 
 ### Without Python
 
@@ -55,7 +56,7 @@ When none of the three prints the usage, build the page yourself:
 1. Number the paragraphs as `extract` would (its rules are in `references/schema.md`), copying each text from the draft exactly, and write the analysis as usual. A .docx cannot be read this way, so ask the user to paste its text.
 2. Copy `<skill-dir>/assets/template.html` to `<out>/index.html`.
 3. In the copy, replace `__THROUGHMAP_DATA__` (it occurs once, inside `<script id="throughmap-data" type="application/json">`) with the analysis JSON, writing every `</` as `<\/` and every `<!--` as `<\u0021--`, as `build` does. The inserted text then holds neither `</` nor `<!--`, the JSON value is unchanged, and the browser cannot end the data early.
-4. Tell the user that quotes are checked in the browser instead (a quote that is not in its paragraph gets a warning mark), and that a .docx needs Python, so they should paste its text instead.
+4. Tell the user that quotes are checked in the browser instead (a quote that is not in its paragraph gets a warning mark), and that a .docx needs Python, so they should paste its text instead. Without Python, no version is saved and nothing is compared: for a revised draft, the page shows the new version alone, so tell the user that the comparison needs Python, and never write `compare` yourself.
 
 ## Procedure
 
@@ -144,7 +145,7 @@ When none of the three prints the usage, build the page yourself:
    open: <out>/index.html
    ```
 
-   When `<out>` holds other files, a fifth line names them, such as `also in <out>: assemble.py (remove it if you created it)`. Delete the ones you wrote, and tell the user about the rest.
+   When `<out>` holds other files, a last line names them, such as `also in <out>: assemble.py (remove it if you created it)`. Delete the ones you wrote, and tell the user about the rest.
 
    Relay the summary in the user's language (the computed notes print in English) and give the `open:` path, which is absolute. In the Claude Code desktop app, the path opens in the browser pane when clicked. Anywhere else, ask before opening it, and then use the command for the shell you run:
 
@@ -157,10 +158,19 @@ When none of the three prints the usage, build the page yourself:
 
    In cmd and Git Bash, `start` takes its first quoted argument as a window title, so the empty `""` must come first.
 
-When the user revises the draft, run steps 2 to 6 again, repeating `--name`, `--out`, `--keep-short`, `--section` and every correction that still fits the new text. `build` adds the next version and keeps the earlier ones. To list them:
+When the user revises the draft, run steps 2 to 6 again, repeating `--name`, `--out`, `--keep-short`, `--section` and every correction that still fits the new text. The revision must go into the same `<out>` as the earlier versions: when it is a new file, such as `essay-v2.docx` beside `essay.docx`, run `extract` on it with `--out "<out>"`, the earlier draft's folder, and use that folder for the rest. In step 4, read the latest `vN.json` in `<out>` first. `build` adds the next version, keeps the earlier ones, and compares the new version with the latest of them. Its summary then has a line before `open:`, such as:
+
+```
+changes from v1: 1 edited (P4) · 1 added (P7) · 1 split (v1 P2 into P2 and P3) · marks: 1 gained
+```
+
+Old paragraph numbers carry their version, as in `v1 P2`. Relay the line in the user's language with the rest of the summary. The page shows the same changes in a panel above the section flow, puts the two versions' section cards side by side and their thread maps one above the other, and joins each paragraph to its match.
+
+To compare with an earlier version instead, list the versions and name one. This saves the latest analysis once more, as the next version, compared with the one you name:
 
 ```
 python3 "<skill-dir>/scripts/throughmap.py" versions "<out>"
+python3 "<skill-dir>/scripts/throughmap.py" build "<out>/draft.json" --compare v1
 ```
 
 ## Writing the analysis
@@ -177,6 +187,7 @@ python3 "<skill-dir>/scripts/throughmap.py" versions "<out>"
   - alternatives: every option that an "or" offers, inside a condition as anywhere else. A summary that states the condition keeps the "or" and names each option in the draft's own words, even one that seems to fall under another: a form that "a parent or guardian" signs is not a form that a parent signs.
 - **Recurring examples.** `cases` lists only the examples (a case, a company, a person, an analogy) that appear in at least two items.
 - **Language.** Write labels, conclusions, batons, notes and directions in the user's language, and set `ui_language` to its code (`en`, `ko`, ...). Quotes stay in the draft's language. The page's own text is built in for English and Korean; for another language, add `ui_strings` with the strings translated (the keys are listed in `references/schema.md`), or the page shows them in English.
+- **A revised draft.** When `<out>` already holds versions, keep the `id` of every question and thread that continues from the latest one, and give a new question or thread an id that no earlier version used. The comparison takes two threads with one id for the same thread. Keep the role, label, evidence and thread marks of a paragraph whose text did not change, unless the revision changed what it does: the page reports every mark that comes or goes as a change. Re-read each gap of the latest version against the new text. While it still applies, write it again, naming its items by their new ids, and leave it out only when the revision dealt with it: the page reports every earlier gap that is not written again as one that no longer applies.
 - **Lengths.** A label fits in 28 characters, a conclusion in 90, a baton in 40, a section's `short` in 12 and the thesis in 160. `check` warns about longer ones. When a length and a caveat compete, the caveat wins: cut other words first, and let the text run long rather than drop a hedge, a condition or an alternative. A length warning on such a text is the right outcome.
 - **Consistency.** Last, when everything else is written, read the analysis through twice. First, hold every label, section conclusion and baton against its paragraphs and their caveats, and restore any caveat it lost or any claim it hardened: every "or" in a condition of those paragraphs is still there, with all its options. Then read the thesis against every section conclusion and against the labels of the paragraphs it draws on, and each section conclusion against the labels of its own paragraphs. A summary may say less than the parts it sums up, but never more firmly, and never the opposite: a thesis that says to stop planting street trees, over a section that concludes "plant fewer, water more", says what its own map denies. Where they part, re-read the paragraphs and correct whichever one departs from them; never bend a label to fit the thesis.
 
@@ -225,3 +236,6 @@ A gap names its items (`at`), says what is wrong (`note`) and gives a `direction
 | `ERROR ... quotes N words that are not in the draft` | Those are your words: remove them and name the move instead. Shortening them to slip under the limit is still a rewrite. |
 | The page puts a warning mark on a quote | The quote is not in its paragraph: fix it in the analysis and build the page again. |
 | The page says it has no readable analysis | Build it again; without Python, check the two escapes in the inserted JSON. |
+| `error: no saved version v3 in <out>` | Run `versions "<out>"` and name a version it lists, or leave out `--compare` to compare with the latest. |
+| `changes from v2: not compared (v2.json cannot be read: …)` | The new version was built and saved without a comparison. Tell the user; `--compare` can name another saved version. |
+| The `changes` line calls every paragraph added and removed | The two versions share no paragraph: `<out>` holds the map of another draft, or the revision rewrote everything. Check that `--out` names the right folder. |

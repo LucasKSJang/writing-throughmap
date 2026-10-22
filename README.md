@@ -19,6 +19,8 @@ The map is one page, `index.html`, which opens in a browser without an internet 
 5. **Gaps.** Folded at first, so the flow comes before any advice. The gaps the agent found come first, each with a direction for fixing it and no replacement text. Then "Seen by counting" lists any thread that goes quiet for a long stretch or does not return in the last section, and any paragraph on no thread, except a transition.
 6. **Footer.** A note that the page works offline, and the path of its data file, such as `federalist-10.throughmap/v1.json`.
 
+From the second version on, the page also shows what changed: a panel lists the paragraphs edited, added, removed, split, merged and moved, the thread marks gained and lost, and the gaps that no longer apply. The section cards of the two versions sit side by side, and their thread maps sit one above the other, with a thin line from each paragraph to its match.
+
 Save PNG saves the poster shown above. Print prints the page with the paragraph list and the gaps unfolded.
 
 Every role, summary and thread mark comes with a quote from the draft, and a script checks that each quote is word for word in its paragraph. The page checks the quotes again when it opens and marks any it cannot find. The 12 paragraph roles are Problem, Thesis, Context, Claim, Evidence, Example, Counterpoint, Implication, Framework, Transition, Synthesis and Conclusion.
@@ -51,7 +53,7 @@ Or install the skill alone with Codex's skill installer. The Codex IDE extension
 $skill-installer install https://github.com/LucasKSJang/writing-throughmap/tree/main/skills/throughmap
 ```
 
-On Windows, Codex's elevated sandbox (`[windows] sandbox = "elevated"` in `~/.codex/config.toml`) cannot run a Python installed for one user only, so `python3`, `python` and `py` all come back as not recognized. The skill then builds the page without Python: the page still checks the quotes, but a .docx cannot be read, so paste its text instead. The script runs with a Python installed for all users, or with `sandbox = "unelevated"`.
+On Windows, Codex's elevated sandbox (`[windows] sandbox = "elevated"` in `~/.codex/config.toml`) cannot run a Python installed for one user only, so `python3`, `python` and `py` all come back as not recognized. The skill then builds the page without Python: the page still checks the quotes, but a .docx cannot be read, so paste its text instead, and a revised draft is not compared with the earlier one. The script runs with a Python installed for all users, or with `sandbox = "unelevated"`.
 
 ### Other agents
 
@@ -67,7 +69,7 @@ Ask your agent in your own words. For example:
 
 - "Map the structure of essay.docx."
 - "이 글 구조 지도 그려줘" (Korean for "draw a structure map of this text"), with the text pasted in or the title of a Google Doc.
-- "I revised it. Compare with the first draft." This one is coming in v0.2. Until then, mapping the revised draft saves the new map as the next version and keeps the earlier ones.
+- "I revised it. Compare with the first draft." Since v0.2, the agent maps the revised draft as the next version in the same folder, and the page shows what changed since the last version, or since any earlier one you name.
 
 The skill reads .docx, .md and .txt files, PDFs, pasted text, and Google Docs through a connected Google Drive or Docs tool. Without such a tool, download the doc as .docx. The page is labelled in the language you chat in, while the quotes stay in the draft's language, so an English essay can be mapped with Korean labels.
 
@@ -75,7 +77,7 @@ Before drawing, the agent posts an outline in chat: the thesis, the questions an
 
 ## Privacy
 
-throughmap itself sends nothing off your computer. The script and the page make no network requests and collect no data. throughmap reads only the draft you give it and never changes it. Its output goes into one `<essay>.throughmap/` folder next to the draft. A PDF, pasted text or a Google Doc is first saved as one Markdown file, beside the PDF or in the current folder, and the folder goes next to that file. Google Docs are read through your own connector, read-only.
+throughmap itself sends nothing off your computer. The script and the page make no network requests and collect no data. throughmap reads only the draft you give it and never changes it. Its output goes into one `<essay>.throughmap/` folder next to the draft. A PDF, pasted text or a Google Doc is first saved as one Markdown file, beside the PDF or in the current folder, and the folder goes next to that file. Google Docs are read through your own connector, read-only. `index.html` holds the full text of the draft, and after a revision, the text of the version it is compared with as well. To share only the map, share the PNG.
 
 Your agent reads the draft to write the analysis, so the draft is handled like anything else you share in that conversation, under your agent's own terms.
 
@@ -89,9 +91,9 @@ The skill tells your agent what to do, and a Python script, `throughmap.py`, doe
 4. **Check.** The script confirms that every quote is word for word in its paragraph and that the analysis matches `source.json`. The agent fixes what fails and checks again, for up to three rounds. If errors remain, it tells you what failed and stops.
 5. **Build.** The script saves the analysis as `v1.json`, writes `index.html` and prints a short summary: the section flow, up to three gaps and the path of the page.
 
-`source.json`, `draft.json`, `v1.json` and `index.html` all go into one folder named after the draft and placed next to it, such as `essay.throughmap/` beside `essay.docx`. For a PDF, pasted text or a Google Doc, the folder goes next to the Markdown file. The script's `--out` option puts the folder somewhere else. After a revision, a new run adds `v2.json`, `v3.json` and so on. Saved versions are never overwritten, and `index.html` always shows the latest.
+`source.json`, `draft.json`, `v1.json` and `index.html` all go into one folder named after the draft and placed next to it, such as `essay.throughmap/` beside `essay.docx`. For a PDF, pasted text or a Google Doc, the folder goes next to the Markdown file. The script's `--out` option puts the folder somewhere else. After a revision, a new run adds `v2.json`, `v3.json` and so on. Each new version is compared with the previous one, and `build --compare v1` compares it with an earlier one instead. Saved versions are never overwritten, and `index.html` always shows the latest.
 
-Without Python, the agent copies the page template and fills in the analysis itself. The page then checks the quotes in the browser and marks any it cannot find. A .docx needs Python, so paste its text instead.
+Without Python, the agent copies the page template and fills in the analysis itself. The page then checks the quotes in the browser and marks any it cannot find. A .docx needs Python, so paste its text instead. Versions are not saved either, so a revised draft is not compared with the earlier one.
 
 ## Limits
 
@@ -100,6 +102,7 @@ Without Python, the agent copies the page template and fills in the analysis its
 - Analysis only. throughmap never writes or rewrites your prose. Its directions say where, what to connect and why, and the wording stays yours. It does not check grammar, spelling, citations or style.
 - From a .docx, footnotes, endnotes, text boxes, comments, headers, footers and images are not read.
 - Roles, summaries, threads, examples and gaps are all a model's reading of the draft and can be off. The quote beside each role, summary and thread mark lets you check it against your draft. The thesis and the section conclusions have no quote beside them, so read them against the draft: they can narrow a condition or make a hedged claim sound firmer.
+- The comparison matches paragraphs by their words. A paragraph rewritten by more than about half can show as removed and added, and the page shows how closely each pair matches.
 - Made for writers aged 18 and over.
 
 ## License
