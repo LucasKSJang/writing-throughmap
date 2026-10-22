@@ -8,7 +8,7 @@ class PackageTests(unittest.TestCase):
     def test_plugin_manifest(self):
         m = json.loads((ROOT / ".claude-plugin/plugin.json").read_text("utf-8"))
         self.assertEqual(m["name"], "writing-throughmap")
-        self.assertEqual(m["version"], "0.1.0")
+        self.assertEqual(m["version"], "0.1.1")
         self.assertEqual(m["license"], "MIT")
         self.assertEqual(m["author"], {"name": "Lucas Jang"})
         self.assertEqual(m["repository"], "https://github.com/LucasKSJang/writing-throughmap")

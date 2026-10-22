@@ -3,7 +3,7 @@ name: throughmap
 description: "Map the flow of an essay, report or article draft as a one-page offline infographic: section conclusions, paragraph roles, threads, recurring examples and gaps. Use when someone asks to map, visualize or check a draft's structure or argument (구조 지도, 흐름 점검, 문단 역할) or to check a draft before submitting it. Analysis only; it never rewrites the writing."
 license: MIT
 metadata:
-  version: "0.1.0"
+  version: "0.1.1"
   homepage: "https://github.com/LucasKSJang/writing-throughmap"
 ---
 
